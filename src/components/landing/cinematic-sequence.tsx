@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Wallet, ArrowDownLeft, ArrowUpRight, Users, RefreshCw, Sheet as SheetIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 const FRAMES = [
   { icon: Wallet, title: "Create a cashbook", detail: "“Sharma General Store” appears in seconds." },
@@ -18,39 +24,46 @@ const FRAMES = [
 export function CinematicSequence() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
-  const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // Server and first client render both assume motion is fine; if the user's
+  // OS says otherwise we swap to the static list right after mount.
+  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    if (reduced) return;
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(mql.matches);
+    const raf = requestAnimationFrame(sync);
+    mql.addEventListener("change", sync);
+    return () => {
+      cancelAnimationFrame(raf);
+      mql.removeEventListener("change", sync);
+    };
+  }, []);
 
-    let ctx: { revert: () => void } | undefined;
-    let cancelled = false;
+  useEffect(() => {
+    if (reduced || !sectionRef.current) return;
 
-    (async () => {
-      const { gsap } = await import("gsap");
-      const { ScrollTrigger } = await import("gsap/ScrollTrigger");
-      gsap.registerPlugin(ScrollTrigger);
-      if (cancelled || !sectionRef.current) return;
+    const section = sectionRef.current;
+    const trigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top top",
+      end: `+=${FRAMES.length * 60}%`,
+      pin: true,
+      pinSpacing: true,
+      anticipatePin: 1,
+      scrub: 0.6,
+      onUpdate: (self) => {
+        const idx = Math.min(FRAMES.length - 1, Math.floor(self.progress * FRAMES.length));
+        setActive(idx);
+      },
+    });
 
-      ctx = gsap.context(() => {
-        const st = ScrollTrigger.create({
-          trigger: sectionRef.current,
-          start: "top top",
-          end: `+=${FRAMES.length * 90}%`,
-          pin: true,
-          scrub: 0.6,
-          onUpdate: (self) => {
-            const idx = Math.min(FRAMES.length - 1, Math.floor(self.progress * FRAMES.length));
-            setActive(idx);
-          },
-        });
-        return () => st.kill();
-      }, sectionRef);
-    })();
+    // Layout can still be settling (web fonts, images) right after mount —
+    // refreshing once on the next frame keeps the pin's start/end accurate.
+    const raf = requestAnimationFrame(() => ScrollTrigger.refresh());
 
     return () => {
-      cancelled = true;
-      ctx?.revert();
+      cancelAnimationFrame(raf);
+      trigger.kill();
     };
   }, [reduced]);
 

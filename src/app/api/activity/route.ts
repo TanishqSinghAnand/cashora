@@ -14,7 +14,7 @@ export async function GET() {
     const conditions: SQL[] = [eq(auditLogs.userId, user.id)];
     if (cashbookIds.length > 0) {
       conditions.push(inArray(auditLogs.entityId, cashbookIds));
-      conditions.push(sql`${auditLogs.metadata} ->> 'cashbookId' = any(${cashbookIds})`);
+      conditions.push(inArray(sql`${auditLogs.metadata} ->> 'cashbookId'`, cashbookIds));
     }
 
     const rows = await db

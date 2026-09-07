@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { invitations, collaborators, cashbooks, users } from "@/db/schema";
 import { requireUser } from "@/server/auth";
@@ -27,26 +27,18 @@ export async function POST(_req: Request, { params }: Params) {
       throw new ForbiddenError("You already own this cashbook");
     }
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(invitations)
-        .set({ status: "ACCEPTED", invitedUserId: user.id, respondedAt: new Date() })
-        .where(eq(invitations.id, invitation.id));
+    // The neon-http driver has no interactive transaction support, so this
+    // relies on the collaborators_unique_idx (cashbookId, userId) unique
+    // index for idempotency instead of a transactional read-then-write.
+    await db
+      .update(invitations)
+      .set({ status: "ACCEPTED", invitedUserId: user.id, respondedAt: new Date() })
+      .where(eq(invitations.id, invitation.id));
 
-      const [existing] = await tx
-        .select()
-        .from(collaborators)
-        .where(and(eq(collaborators.cashbookId, invitation.cashbookId), eq(collaborators.userId, user.id)))
-        .limit(1);
-
-      if (!existing) {
-        await tx.insert(collaborators).values({
-          cashbookId: invitation.cashbookId,
-          userId: user.id,
-          permission: invitation.permission,
-        });
-      }
-    });
+    await db
+      .insert(collaborators)
+      .values({ cashbookId: invitation.cashbookId, userId: user.id, permission: invitation.permission })
+      .onConflictDoNothing();
 
     const [owner] = await db.select().from(users).where(eq(users.id, cashbook.ownerId)).limit(1);
 

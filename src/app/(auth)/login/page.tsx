@@ -91,30 +91,49 @@ function LoginForm() {
           <h1 className="text-2xl font-semibold tracking-tight mb-1">Welcome back</h1>
           <p className="text-sm text-muted mb-8">Continue securely with Telegram</p>
 
-          {config?.telegram && config.telegramBotUsername ? (
+          {config?.telegram && config.telegramBotUsername && (
             <div className="flex flex-col items-center gap-4">
               <TelegramLoginWidget botUsername={config.telegramBotUsername} onAuth={handleTelegramAuth} />
               <p className="text-xs text-muted flex items-center gap-1.5">
                 <Lock size={12} /> We never see your Telegram password
               </p>
             </div>
-          ) : config?.demoAuth ? (
+          )}
+
+          {config?.telegram && config.telegramBotUsername && config.demoAuth && (
+            <div className="flex items-center gap-3 my-5 text-xs text-muted">
+              <span className="h-px flex-1 bg-border" />
+              or, for local development
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          )}
+
+          {config?.demoAuth && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs text-muted bg-surface-2 rounded-lg p-3 text-left">
-                Telegram login isn&apos;t configured yet in this environment. Using the development sign-in instead — this
-                shortcut is automatically disabled in production.
-              </p>
+              {!config.telegram && (
+                <p className="text-xs text-muted bg-surface-2 rounded-lg p-3 text-left">
+                  Telegram login isn&apos;t configured yet in this environment. Using the development sign-in instead — this
+                  shortcut is automatically disabled in production.
+                </p>
+              )}
+              {config.telegram && (
+                <p className="text-xs text-muted text-left">
+                  The Telegram widget only works once a production domain is registered — use this to test locally instead.
+                </p>
+              )}
               <Input
                 placeholder="Your name"
                 value={demoName}
                 onChange={(e) => setDemoName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleDemoLogin()}
               />
-              <Button onClick={handleDemoLogin} disabled={loading || !demoName.trim()}>
+              <Button variant={config.telegram ? "outline" : "primary"} onClick={handleDemoLogin} disabled={loading || !demoName.trim()}>
                 {loading ? "Signing in…" : "Continue"}
               </Button>
             </div>
-          ) : (
+          )}
+
+          {!config?.telegram && !config?.demoAuth && (
             <p className="text-sm text-muted">Sign-in is temporarily unavailable. Please try again shortly.</p>
           )}
         </div>
