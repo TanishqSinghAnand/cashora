@@ -6,3 +6,4 @@ export const createInvitationSchema = z.object({
 });
 
 export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
+export type CreateInvitationFormInput = z.input<typeof createInvitationSchema>;

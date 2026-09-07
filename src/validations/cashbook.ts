@@ -17,3 +17,4 @@ export const updateCashbookSchema = z.object({
 
 export type CreateCashbookInput = z.infer<typeof createCashbookSchema>;
 export type UpdateCashbookInput = z.infer<typeof updateCashbookSchema>;
+export type CreateCashbookFormInput = z.input<typeof createCashbookSchema>;

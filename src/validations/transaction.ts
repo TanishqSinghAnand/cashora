@@ -15,3 +15,5 @@ export const updateTransactionSchema = createTransactionSchema.partial();
 
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
+// Form-facing type (pre-coercion) — use this for useForm<>() generics.
+export type CreateTransactionFormInput = z.input<typeof createTransactionSchema>;

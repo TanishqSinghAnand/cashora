@@ -31,6 +31,7 @@ export async function DELETE(_req: Request, { params }: Params) {
       action: "REMOVE_COLLABORATOR",
       entity: "cashbook",
       entityId: id,
+      cashbookId: id,
       description: `${user.name} removed ${removed?.user.name ?? "a collaborator"} from "${access.cashbook.name}"`,
     });
 

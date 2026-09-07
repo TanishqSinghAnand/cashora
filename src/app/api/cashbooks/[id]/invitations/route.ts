@@ -43,6 +43,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       action: "INVITE_COLLABORATOR",
       entity: "invitation",
       entityId: invitation.id,
+      cashbookId: id,
       description: `${user.name} invited ${input.email} to "${access.cashbook.name}"`,
     });
 

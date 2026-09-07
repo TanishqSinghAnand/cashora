@@ -22,6 +22,7 @@ export async function recordAudit(entry: {
   action: AuditAction;
   entity: string;
   entityId?: string;
+  cashbookId?: string;
   description: string;
   metadata?: Record<string, unknown>;
 }) {
@@ -31,7 +32,7 @@ export async function recordAudit(entry: {
     entity: entry.entity,
     entityId: entry.entityId,
     description: entry.description,
-    metadata: entry.metadata,
+    metadata: entry.cashbookId ? { ...entry.metadata, cashbookId: entry.cashbookId } : entry.metadata,
   });
 
   // Google Sheets sync is best-effort: never let a spreadsheet outage break the app.

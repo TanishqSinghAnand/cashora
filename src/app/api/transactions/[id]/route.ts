@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const user = await requireUser();
-    const { tx, access } = await loadTransactionWithAccess(id, user.id);
+    const { access } = await loadTransactionWithAccess(id, user.id);
 
     const input = updateTransactionSchema.parse(await req.json());
 
@@ -55,6 +55,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       action: "UPDATE_TRANSACTION",
       entity: "transaction",
       entityId: id,
+      cashbookId: access.cashbook.id,
       description: `${user.name} updated a transaction on "${access.cashbook.name}"`,
     });
 
@@ -93,6 +94,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       action: "DELETE_TRANSACTION",
       entity: "transaction",
       entityId: id,
+      cashbookId: access.cashbook.id,
       description: `${user.name} deleted a transaction on "${access.cashbook.name}"`,
     });
 

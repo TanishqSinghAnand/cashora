@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { db } from "@/db";
-import { cashbooks, collaborators } from "@/db/schema";
+import { cashbooks, collaborators, invitations } from "@/db/schema";
 import { requireUser } from "@/server/auth";
 import { computeBalance } from "@/server/balance";
 import { createCashbookSchema } from "@/validations/cashbook";
 import { toMinorUnits } from "@/lib/money";
 import { recordAudit } from "@/server/audit";
-import { syncCashbookRow } from "@/services/sheets";
+import { syncCashbookRow, syncCollaboratorRow } from "@/services/sheets";
 import { handleApiError } from "@/server/api-utils";
 
 export async function GET() {
@@ -77,6 +78,41 @@ export async function POST(req: NextRequest) {
       createdAt: created.createdAt.toISOString(),
       updatedAt: created.updatedAt.toISOString(),
     });
+
+    if (input.collaboratorEmail) {
+      const token = nanoid(32);
+      const [invitation] = await db
+        .insert(invitations)
+        .values({
+          cashbookId: created.id,
+          invitedBy: user.id,
+          email: input.collaboratorEmail,
+          permission: "EDIT",
+          token,
+        })
+        .returning();
+
+      await recordAudit({
+        userId: user.id,
+        userName: user.name,
+        action: "INVITE_COLLABORATOR",
+        entity: "invitation",
+        entityId: invitation.id,
+        description: `${user.name} invited ${input.collaboratorEmail} to "${created.name}"`,
+      });
+
+      void syncCollaboratorRow({
+        cashbookId: created.id,
+        cashbookName: created.name,
+        owner: user.name,
+        collaborator: input.collaboratorEmail,
+        collaboratorEmail: input.collaboratorEmail,
+        permission: "EDIT",
+        status: "PENDING",
+        invitedAt: invitation.createdAt.toISOString(),
+        acceptedAt: "",
+      });
+    }
 
     return NextResponse.json({ cashbook: created }, { status: 201 });
   } catch (err) {

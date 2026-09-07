@@ -56,6 +56,7 @@ export async function POST(_req: Request, { params }: Params) {
       action: "ACCEPT_COLLABORATION",
       entity: "cashbook",
       entityId: cashbook.id,
+      cashbookId: cashbook.id,
       description: `${user.name} accepted the invitation to "${cashbook.name}"`,
     });
 

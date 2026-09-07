@@ -99,6 +99,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       action: "CREATE_TRANSACTION",
       entity: "transaction",
       entityId: created.id,
+      cashbookId: id,
       description: `${user.name} recorded ${input.type === "CASH_IN" ? "cash in" : "cash out"} of ${input.amount} on "${access.cashbook.name}"`,
     });
 
