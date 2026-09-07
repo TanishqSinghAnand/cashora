@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useCallback } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
+import { useSWRConfig } from "swr";
 import { useUser } from "@/components/providers/user-provider";
 import { useCashbookDetail } from "@/hooks/use-cashbook-detail";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +18,16 @@ export default function CashbookDetailPage({ params }: { params: Promise<{ id: s
   const { id } = use(params);
   const { user } = useUser();
   const { detail, isLoading, mutate } = useCashbookDetail(id);
+  const { mutate: globalMutate } = useSWRConfig();
   const [addCashOpen, setAddCashOpen] = useState(false);
+
+  // Add/edit/delete happen against separate SWR keys (detail vs. the
+  // ledger's own transactions query) — refresh both together instead of
+  // waiting for each one's independent poll interval to catch up.
+  const refreshAll = useCallback(() => {
+    mutate();
+    globalMutate((key) => typeof key === "string" && key.startsWith(`/api/cashbooks/${id}/transactions`));
+  }, [mutate, globalMutate, id]);
 
   if (isLoading || !detail) {
     return (
@@ -76,7 +86,7 @@ export default function CashbookDetailPage({ params }: { params: Promise<{ id: s
           currency={cashbook.currency}
           currentUserId={user?.id ?? ""}
           canEditAny={role === "OWNER"}
-          onRefresh={mutate}
+          onRefresh={refreshAll}
         />
 
         <Card className="h-fit">
@@ -90,7 +100,7 @@ export default function CashbookDetailPage({ params }: { params: Promise<{ id: s
         cashbookId={id}
         open={addCashOpen}
         onClose={() => setAddCashOpen(false)}
-        onSuccess={mutate}
+        onSuccess={refreshAll}
         disabled={permission !== "EDIT"}
       />
     </div>

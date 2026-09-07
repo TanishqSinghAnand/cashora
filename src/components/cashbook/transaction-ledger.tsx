@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactions } from "@/hooks/use-transactions";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { formatMoney } from "@/lib/money";
 import { apiFetch } from "@/lib/api-client";
 import type { Transaction } from "@/types";
@@ -33,9 +34,10 @@ export function TransactionLedger({
   onRefresh: () => void;
 }) {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [typeFilter, setTypeFilter] = useState<"" | "CASH_IN" | "CASH_OUT">("");
   const { transactions, isLoading, mutate } = useTransactions(cashbookId, {
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     type: typeFilter || undefined,
   });
 
