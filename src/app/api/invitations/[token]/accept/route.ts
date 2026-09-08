@@ -27,6 +27,17 @@ export async function POST(_req: Request, { params }: Params) {
       throw new ForbiddenError("You already own this cashbook");
     }
 
+    // The invite is only as good as the email it was sent to — require the
+    // accepting session's Clerk-verified email to match. Google/OTP sign-in
+    // already guarantees `user.email` is verified, so this is what actually
+    // ties "this invitation" to "this specific person", not just "whoever
+    // has the link".
+    if (invitation.email && user.email && invitation.email.toLowerCase() !== user.email.toLowerCase()) {
+      throw new ForbiddenError(
+        `This invitation was sent to ${invitation.email}, but you're signed in as ${user.email}. Sign in with that email to accept it.`
+      );
+    }
+
     // The neon-http driver has no interactive transaction support, so this
     // relies on the collaborators_unique_idx (cashbookId, userId) unique
     // index for idempotency instead of a transactional read-then-write.

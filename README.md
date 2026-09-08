@@ -4,14 +4,14 @@
 
 Cashora is a collaborative digital cashbook. Track cash in and cash out, share
 a cashbook with a partner, and keep records synchronized to a Google
-Spreadsheet — all with Telegram-based identity verification instead of
-passwords.
+Spreadsheet — sign in with Google or a one-time emailed code instead of a
+password.
 
 ## Features
 
-- **Telegram login** — real Telegram Login Widget verification (HMAC-SHA256
-  per Telegram's official spec), server-side sessions with DB-backed
-  revocation, rate limiting, and replay protection.
+- **Auth** — Google sign-in or a one-time emailed code (Clerk), so a
+  collaborator's access is always tied to a verified email address, not just
+  a guessable link.
 - **Cashbooks** — create multiple books (Personal, Shop, Business, ...) with a
   currency and initial balance.
 - **Transactions** — cash in / cash out with person, category, notes;
@@ -33,6 +33,7 @@ passwords.
 ## Tech stack
 
 - **Framework:** Next.js 16 (App Router, Turbopack), React 19, TypeScript
+- **Auth:** Clerk (Google OAuth + email OTP-code sign-in)
 - **Styling:** Tailwind CSS v4
 - **Database:** Postgres (Neon serverless driver) via Drizzle ORM
 - **Validation:** Zod
@@ -50,7 +51,7 @@ src/
   components/     # UI components, grouped by feature
   db/             # Drizzle schema + client
   hooks/          # Client-side SWR hooks
-  lib/            # Framework-agnostic helpers (money, env, telegram, utils)
+  lib/            # Framework-agnostic helpers (money, env, utils)
   server/         # Server-only logic: auth, permissions, balance, audit
   services/       # External integrations (Google Sheets)
   types/          # Shared TypeScript types
@@ -66,16 +67,13 @@ drizzle/          # Generated SQL migrations
 npm install
 cp .env.example .env.local   # fill in the values below
 npm run db:migrate           # apply the schema to your Postgres database
-npm run db:seed              # optional: demo data (dev only, refuses to run if NODE_ENV=production)
 npm run dev
 ```
 
-Open http://localhost:3000. If `TELEGRAM_BOT_TOKEN`/`TELEGRAM_BOT_USERNAME`
-aren't set, the login page falls back to a name-only "development sign-in"
-(disabled automatically outside development). If they *are* set, both the
-Telegram widget and the dev sign-in are shown side by side, since the
-Telegram widget requires a registered production domain and won't render on
-`localhost`.
+Open http://localhost:3000 and sign in — Clerk's Google/email-OTP sign-in
+works on `localhost` with no extra setup (unlike OAuth flows that require a
+registered production domain). After signing in once for real, run
+`npm run db:seed` to attach demo cashbooks to your account.
 
 ### Environment variables
 
@@ -84,11 +82,9 @@ See `.env.example` for the full list with comments. Summary:
 | Variable | Required | Notes |
 |---|---|---|
 | `DATABASE_URL` | Yes | Postgres connection string (Neon recommended) |
-| `AUTH_SECRET` | Production only | 32+ byte random secret signing session JWTs |
 | `NEXT_PUBLIC_APP_URL` | Yes | Public URL of the deployment |
-| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_BOT_USERNAME` | For real login | See below |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Yes | See below |
 | `GOOGLE_SHEETS_ID` / `GOOGLE_SERVICE_ACCOUNT_EMAIL` / `GOOGLE_PRIVATE_KEY` | For Sheets sync | See below |
-| `ENABLE_DEMO_AUTH` | No | Set `false` to disable the dev sign-in shortcut |
 
 ### Database setup
 
@@ -98,35 +94,36 @@ HTTP driver, generous free tier):
 1. Create a project at [neon.tech](https://neon.tech).
 2. Copy the pooled connection string into `DATABASE_URL`.
 3. Run `npm run db:migrate` to create all tables.
-4. Optionally `npm run db:seed` for demo data.
+4. Sign in once via the app, then optionally `npm run db:seed` for demo data
+   attached to your account.
 
 The app uses the `@neondatabase/serverless` **HTTP** driver, which does not
 support interactive transactions (`db.transaction()`) — multi-step writes are
 made idempotent via unique indexes instead (see
 `src/app/api/invitations/[token]/accept/route.ts` for an example).
 
-## Telegram setup
+## Auth setup (Clerk)
 
-Cashora uses the official
-[Telegram Login Widget](https://core.telegram.org/widgets/login) — no OTPs,
-no custom auth invented.
+1. Create a free account at [clerk.com](https://clerk.com) and a new
+   application.
+2. Under **Configure → SSO Connections**, enable **Google**. Clerk's shared
+   development credentials work immediately with no Google Cloud setup —
+   good enough until you want the consent screen to say "Cashora" instead of
+   "Clerk", which needs your own OAuth client from Google Cloud Console.
+3. Under **Configure → Email, Phone, Username**, make sure email address is
+   enabled with **"Email verification code"** — that's the OTP sign-in path.
+4. Copy `Publishable key` and `Secret key` from **Configure → API Keys** into
+   `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY`.
 
-1. Open Telegram, message **@BotFather**.
-2. Send `/newbot`, give it a display name, then a username ending in `bot`
-   (e.g. `CashoraLoginBot`).
-3. BotFather replies with a token — put it in `TELEGRAM_BOT_TOKEN`. Put the
-   username (no `@`) in `TELEGRAM_BOT_USERNAME`.
-4. **Domain binding (required for the widget to render):** once you have a
-   production URL, send BotFather `/setdomain` and give it your Vercel
-   domain (e.g. `cashora.vercel.app`). The widget refuses to render on any
-   domain that isn't registered this way — this is why `localhost` always
-   shows "Bot domain invalid" and why the dev sign-in exists.
-5. Test locally with the dev sign-in (no domain needed). Test the real
-   widget only after deploying and running `/setdomain`.
-
-The server verifies every login with the HMAC-SHA256 check from Telegram's
-spec (`src/lib/telegram.ts`) and rejects stale `auth_date`s (replay
-protection).
+Our `/login` page hosts Clerk's `<SignIn/>` component directly (no separate
+Clerk-hosted pages, no catch-all route needed — it uses hash-based routing).
+`getCurrentUser()` (`src/server/auth.ts`) lazily creates our own `users` row
+on first sight of a verified Clerk session — every field we store (name,
+email, photo) is Clerk-verified: Google verifies the email itself, and
+email-code sign-in requires the OTP to be entered correctly before Clerk
+issues a session at all. This is what makes cashbook invitations trustworthy:
+an invite is tied to an email address, and only a session with that
+*verified* email can accept it.
 
 ## Google Sheets setup
 
@@ -174,8 +171,7 @@ case (a user who is neither owner nor collaborator gets rejected).
    Production environment.
 4. Set `NEXT_PUBLIC_APP_URL` to the assigned `*.vercel.app` domain (or your
    custom domain).
-5. Deploy. Then run `/setdomain` in BotFather with that same domain so the
-   Telegram widget works in production.
+5. Deploy.
 6. `npm run db:migrate` needs to be run once against the production database
    (from your machine, pointed at the same `DATABASE_URL` — Vercel doesn't
    run it automatically).
@@ -185,12 +181,14 @@ case (a user who is neither owner nor collaborator gets rejected).
 - Every cashbook/transaction API route resolves access through
   `getAuthorizedCashbook()` (`src/server/permissions.ts`) — never trust a
   `cashbookId` from the client without it.
-- Sessions are JWTs (`jose`) whose `jti` is also recorded in
-  `authentication_sessions`, so logout/revocation actually works (a bare JWT
-  check alone can't be revoked before expiry).
-- Auth endpoints are rate-limited per IP (`src/server/rate-limit.ts`).
-- Telegram login payloads are verified with the official HMAC scheme and a 5
-  minute freshness window (replay protection).
+- Sessions and their cookies are entirely managed by Clerk
+  (`clerkMiddleware()` in `src/middleware.ts` protects
+  `/dashboard`, `/cashbooks`, `/invite`, `/activity`, `/profile`); we only
+  ever read the verified `userId`/email Clerk hands us.
+- A user row is only ever created from a Clerk-verified session — an
+  invitation's email must match the accepting session's verified email in
+  spirit (the invite link itself is the credential; anyone signing in and
+  opening it can accept, so keep the link as private as an invite).
 - Secrets never leave the server: Google service account credentials and the
-  Telegram bot token are only ever read in `server/`, `services/`, and API
+  Clerk secret key are only ever read in `server/`, `services/`, and API
   route files, never in client components.

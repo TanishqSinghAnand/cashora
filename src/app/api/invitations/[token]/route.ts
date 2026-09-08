@@ -2,16 +2,16 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { invitations, cashbooks, users } from "@/db/schema";
-import { requireUser } from "@/server/auth";
 import { NotFoundError, ForbiddenError } from "@/server/permissions";
 import { handleApiError } from "@/server/api-utils";
 
 type Params = { params: Promise<{ token: string }> };
 
+// Intentionally public (no requireUser()) — someone needs to see which email
+// an invite is for *before* signing in, so they can pick the right account.
 export async function GET(_req: Request, { params }: Params) {
   try {
     const { token } = await params;
-    await requireUser();
 
     const [row] = await db
       .select({ invitation: invitations, cashbook: cashbooks, inviter: users })
@@ -31,6 +31,7 @@ export async function GET(_req: Request, { params }: Params) {
       inviterName: row.inviter.name,
       permission: row.invitation.permission,
       status: row.invitation.status,
+      invitedEmail: row.invitation.email,
     });
   } catch (err) {
     return handleApiError(err);

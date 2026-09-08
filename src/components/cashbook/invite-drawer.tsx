@@ -57,7 +57,7 @@ export function InviteDrawer({ cashbookId, open, onClose }: { cashbookId: string
     >
       {inviteLink ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted">Share this link with your collaborator (via Telegram, WhatsApp, etc.):</p>
+          <p className="text-sm text-muted">Share this link with your collaborator (via WhatsApp, email, etc.):</p>
           <div className="flex gap-2">
             <Input readOnly value={inviteLink} className="text-xs" />
             <Button variant="outline" size="icon" onClick={copyLink} aria-label="Copy link">

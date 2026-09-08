@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 import { LayoutDashboard, Wallet, Activity, User, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/logo";
 import { useUser } from "@/components/providers/user-provider";
-import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -20,9 +20,10 @@ export function AppShell({ children, onCreateCashbook }: { children: React.React
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useUser();
+  const { signOut } = useClerk();
 
   const handleLogout = async () => {
-    await apiFetch("/api/auth/logout", { method: "POST" });
+    await signOut();
     toast.success("Signed out");
     router.push("/");
     router.refresh();

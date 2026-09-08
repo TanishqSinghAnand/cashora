@@ -24,15 +24,14 @@ export const users = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     email: text("email"),
-    telegramId: text("telegram_id").notNull(),
-    telegramUsername: text("telegram_username"),
+    clerkId: text("clerk_id").notNull(),
     photoUrl: text("photo_url"),
     role: userRoleEnum("role").notNull().default("USER"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastActiveAt: timestamp("last_active_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("users_telegram_id_idx").on(table.telegramId),
+    uniqueIndex("users_clerk_id_idx").on(table.clerkId),
     index("users_email_idx").on(table.email),
   ]
 );
@@ -115,7 +114,6 @@ export const invitations = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     email: text("email"),
-    telegramUsername: text("telegram_username"),
     permission: collaboratorPermissionEnum("permission").notNull().default("EDIT"),
     status: invitationStatusEnum("status").notNull().default("PENDING"),
     token: text("token").notNull(),
@@ -145,35 +143,7 @@ export const auditLogs = pgTable(
   (table) => [index("audit_logs_entity_idx").on(table.entity, table.entityId)]
 );
 
-export const authSessions = pgTable(
-  "authentication_sessions",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    tokenHash: text("token_hash").notNull(),
-    userAgent: text("user_agent"),
-    ipAddress: text("ip_address"),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    uniqueIndex("auth_sessions_token_hash_idx").on(table.tokenHash),
-    index("auth_sessions_user_id_idx").on(table.userId),
-  ]
-);
-
-export const authRateLimits = pgTable(
-  "auth_rate_limits",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    key: text("key").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [index("auth_rate_limits_key_idx").on(table.key, table.createdAt)]
-);
+// Sessions and auth rate limiting are handled by Clerk — no local tables needed.
 
 export const usersRelations = relations(users, ({ many }) => ({
   cashbooks: many(cashbooks),

@@ -13,23 +13,6 @@ CREATE TABLE "audit_logs" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "auth_rate_limits" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"key" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "authentication_sessions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"token_hash" text NOT NULL,
-	"user_agent" text,
-	"ip_address" text,
-	"expires_at" timestamp with time zone NOT NULL,
-	"revoked_at" timestamp with time zone,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "cashbooks" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
@@ -55,7 +38,6 @@ CREATE TABLE "invitations" (
 	"cashbook_id" uuid NOT NULL,
 	"invited_by" uuid NOT NULL,
 	"email" text,
-	"telegram_username" text,
 	"permission" "collaborator_permission" DEFAULT 'EDIT' NOT NULL,
 	"status" "invitation_status" DEFAULT 'PENDING' NOT NULL,
 	"token" text NOT NULL,
@@ -85,8 +67,7 @@ CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"email" text,
-	"telegram_id" text NOT NULL,
-	"telegram_username" text,
+	"clerk_id" text NOT NULL,
 	"photo_url" text,
 	"role" "user_role" DEFAULT 'USER' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -94,7 +75,6 @@ CREATE TABLE "users" (
 );
 --> statement-breakpoint
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "authentication_sessions" ADD CONSTRAINT "authentication_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "cashbooks" ADD CONSTRAINT "cashbooks_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "collaborators" ADD CONSTRAINT "collaborators_cashbook_id_cashbooks_id_fk" FOREIGN KEY ("cashbook_id") REFERENCES "public"."cashbooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "collaborators" ADD CONSTRAINT "collaborators_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -104,9 +84,6 @@ ALTER TABLE "invitations" ADD CONSTRAINT "invitations_invited_user_id_users_id_f
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_cashbook_id_cashbooks_id_fk" FOREIGN KEY ("cashbook_id") REFERENCES "public"."cashbooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "audit_logs_entity_idx" ON "audit_logs" USING btree ("entity","entity_id");--> statement-breakpoint
-CREATE INDEX "auth_rate_limits_key_idx" ON "auth_rate_limits" USING btree ("key","created_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "auth_sessions_token_hash_idx" ON "authentication_sessions" USING btree ("token_hash");--> statement-breakpoint
-CREATE INDEX "auth_sessions_user_id_idx" ON "authentication_sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "cashbooks_owner_id_idx" ON "cashbooks" USING btree ("owner_id");--> statement-breakpoint
 CREATE INDEX "collaborators_user_id_idx" ON "collaborators" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "collaborators_cashbook_id_idx" ON "collaborators" USING btree ("cashbook_id");--> statement-breakpoint
@@ -117,5 +94,5 @@ CREATE INDEX "invitations_invited_user_id_idx" ON "invitations" USING btree ("in
 CREATE INDEX "transactions_cashbook_id_idx" ON "transactions" USING btree ("cashbook_id");--> statement-breakpoint
 CREATE INDEX "transactions_created_at_idx" ON "transactions" USING btree ("created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "transactions_dedupe_idx" ON "transactions" USING btree ("cashbook_id","created_by","client_request_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "users_telegram_id_idx" ON "users" USING btree ("telegram_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "users_clerk_id_idx" ON "users" USING btree ("clerk_id");--> statement-breakpoint
 CREATE INDEX "users_email_idx" ON "users" USING btree ("email");

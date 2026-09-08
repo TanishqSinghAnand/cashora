@@ -6,8 +6,6 @@ export interface SessionUser {
   id: string;
   name: string;
   email: string | null;
-  telegramId: string;
-  telegramUsername: string | null;
   photoUrl: string | null;
   role: "USER" | "SUPER_ADMIN";
 }

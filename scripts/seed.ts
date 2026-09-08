@@ -3,9 +3,15 @@ config({ path: ".env.local" });
 
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import * as schema from "../src/db/schema";
 
+/**
+ * Seeds demo cashbooks onto the most-recently-active real account in the
+ * database. Sign in once for real (Google or email OTP) before running this
+ * — since auth is Clerk-verified, there's no way to fabricate a fake owner
+ * account the way the old Telegram-demo seed did.
+ */
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is not set");
@@ -14,24 +20,18 @@ async function main() {
   const sql = neon(databaseUrl);
   const db = drizzle(sql, { schema });
 
-  const [owner] = await db
-    .insert(schema.users)
-    .values({ name: "Tanishq Singh Anand", telegramId: "demo:tanishq-singh-anand" })
-    .onConflictDoNothing({ target: schema.users.telegramId })
-    .returning();
-
-  const ownerUser =
-    owner ??
-    (await db.select().from(schema.users).where(eq(schema.users.telegramId, "demo:tanishq-singh-anand")))[0];
+  const [ownerUser] = await db.select().from(schema.users).orderBy(desc(schema.users.lastActiveAt)).limit(1);
+  if (!ownerUser) {
+    throw new Error("No users found. Sign in once via the app (Google or email OTP) first, then re-run this script.");
+  }
 
   const [partner] = await db
     .insert(schema.users)
-    .values({ name: "Rahul Verma", telegramId: "demo:rahul-verma" })
-    .onConflictDoNothing({ target: schema.users.telegramId })
+    .values({ name: "Rahul Verma", clerkId: "seed:rahul-verma", email: "rahul.demo@example.com" })
+    .onConflictDoNothing({ target: schema.users.clerkId })
     .returning();
 
-  const partnerUser =
-    partner ?? (await db.select().from(schema.users).where(eq(schema.users.telegramId, "demo:rahul-verma")))[0];
+  const partnerUser = partner ?? (await db.select().from(schema.users).where(eq(schema.users.clerkId, "seed:rahul-verma")))[0];
 
   const cashbookDefs = [
     { name: "Personal", category: "Personal", initialBalanceMinor: 1_500_000, description: "Personal daily expenses" },

@@ -5,7 +5,7 @@ import { env, isGoogleSheetsConfigured } from "@/lib/env";
 const SHEET_NAMES = ["Users", "Cashbooks", "Transactions", "Collaborators", "Audit Log"] as const;
 
 const HEADERS: Record<(typeof SHEET_NAMES)[number], string[]> = {
-  Users: ["User ID", "Name", "Email", "Telegram ID", "Created At", "Last Active"],
+  Users: ["User ID", "Name", "Email", "Created At", "Last Active"],
   Cashbooks: [
     "Cashbook ID",
     "Cashbook Name",
@@ -145,8 +145,8 @@ const noopIfUnconfigured =
   };
 
 export const syncUserRow = noopIfUnconfigured(
-  async (user: { id: string; name: string; email: string | null; telegramId: string; createdAt: string; lastActiveAt: string }) => {
-    await upsertRow("Users", user.id, [user.id, user.name, user.email ?? "", user.telegramId, user.createdAt, user.lastActiveAt]);
+  async (user: { id: string; name: string; email: string | null; createdAt: string; lastActiveAt: string }) => {
+    await upsertRow("Users", user.id, [user.id, user.name, user.email ?? "", user.createdAt, user.lastActiveAt]);
   }
 );
 
