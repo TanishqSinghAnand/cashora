@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label, FieldError } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { SegmentedControl } from "@/components/ui/tabs";
 import { createTransactionSchema, type CreateTransactionFormInput } from "@/validations/transaction";
 import { apiFetch } from "@/lib/api-client";
@@ -33,6 +34,7 @@ export function AddCashDrawer({
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -79,7 +81,21 @@ export function AddCashDrawer({
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div>
           <Label htmlFor="amount">Amount</Label>
-          <Input id="amount" type="number" step="0.01" min="0.01" autoFocus placeholder="5000" className="mt-1.5 text-lg" {...register("amount")} />
+          <Controller
+            control={control}
+            name="amount"
+            render={({ field }) => (
+              <MoneyInput
+                id="amount"
+                autoFocus
+                placeholder="5,000"
+                className="mt-1.5 text-lg"
+                value={String(field.value ?? "")}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
           <FieldError>{errors.amount?.message}</FieldError>
         </div>
 

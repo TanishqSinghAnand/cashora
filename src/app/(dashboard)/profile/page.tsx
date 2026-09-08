@@ -1,17 +1,45 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { LogOut } from "lucide-react";
+import { LogOut, Pencil, Check, X } from "lucide-react";
 import { useUser } from "@/components/providers/user-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { apiFetch } from "@/lib/api-client";
 
 export default function ProfilePage() {
-  const { user } = useUser();
+  const { user, refresh } = useUser();
   const router = useRouter();
   const { signOut } = useClerk();
+
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const startEditing = () => {
+    setName(user?.name ?? "");
+    setEditing(true);
+  };
+
+  const saveName = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    try {
+      await apiFetch("/api/me", { method: "PATCH", body: JSON.stringify({ name: trimmed }) });
+      await refresh();
+      toast.success("Name updated");
+      setEditing(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update name");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -30,15 +58,54 @@ export default function ProfilePage() {
         <CardContent className="flex items-center gap-4">
           {user.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+            <img src={user.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover shrink-0" />
           ) : (
-            <div className="h-16 w-16 rounded-full bg-primary/15 flex items-center justify-center text-2xl font-semibold text-primary">
+            <div className="h-16 w-16 rounded-full bg-primary/15 flex items-center justify-center text-2xl font-semibold text-primary shrink-0">
               {user.name[0]?.toUpperCase()}
             </div>
           )}
-          <div>
-            <p className="font-semibold text-lg">{user.name}</p>
-            {user.email && <p className="text-sm text-muted">{user.email}</p>}
+          <div className="min-w-0 flex-1">
+            {editing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveName();
+                    if (e.key === "Escape") setEditing(false);
+                  }}
+                  autoFocus
+                  className="h-9"
+                />
+                <button
+                  onClick={saveName}
+                  disabled={saving || !name.trim()}
+                  aria-label="Save name"
+                  className="p-1.5 rounded-lg hover:bg-surface-2 text-primary shrink-0 disabled:opacity-50"
+                >
+                  <Check size={16} />
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  aria-label="Cancel"
+                  className="p-1.5 rounded-lg hover:bg-surface-2 text-muted shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-lg truncate">{user.name}</p>
+                <button
+                  onClick={startEditing}
+                  aria-label="Edit name"
+                  className="p-1 rounded-md hover:bg-surface-2 text-muted shrink-0"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            )}
+            {user.email && <p className="text-sm text-muted truncate">{user.email}</p>}
           </div>
         </CardContent>
       </Card>

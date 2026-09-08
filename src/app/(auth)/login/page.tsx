@@ -37,6 +37,7 @@ function LoginForm() {
         <SignIn
           routing="hash"
           fallbackRedirectUrl={next}
+          signUpFallbackRedirectUrl={next}
           appearance={{
             elements: {
               rootBox: "w-full",

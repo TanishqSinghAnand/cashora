@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label, FieldError } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { createCashbookSchema, type CreateCashbookFormInput } from "@/validations/cashbook";
 import { apiFetch } from "@/lib/api-client";
 import type { Cashbook } from "@/types";
@@ -23,6 +24,7 @@ export function CreateCashbookDrawer({ open, onClose }: { open: boolean; onClose
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -97,14 +99,19 @@ export function CreateCashbookDrawer({ open, onClose }: { open: boolean; onClose
 
         <div>
           <Label htmlFor="initialBalance">Initial balance</Label>
-          <Input
-            id="initialBalance"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="50000"
-            className="mt-1.5"
-            {...register("initialBalance")}
+          <Controller
+            control={control}
+            name="initialBalance"
+            render={({ field }) => (
+              <MoneyInput
+                id="initialBalance"
+                placeholder="50,000"
+                className="mt-1.5"
+                value={String(field.value ?? "")}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
           />
           <FieldError>{errors.initialBalance?.message}</FieldError>
         </div>
