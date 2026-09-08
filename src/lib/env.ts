@@ -1,4 +1,9 @@
 const isProd = process.env.NODE_ENV === "production";
+// NODE_ENV is "production" during `next build` too (Next.js imports every
+// route module to collect page data), not just when actually serving
+// requests — so build-time module evaluation must not be treated as "prod
+// without secrets configured yet".
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 
 function optional(name: string): string | undefined {
   return process.env[name];
@@ -7,8 +12,8 @@ function optional(name: string): string | undefined {
 function required(name: string, devFallback: string): string {
   const value = process.env[name];
   if (value) return value;
-  if (isProd) {
-    // Fail loudly in production instead of silently running with dev secrets.
+  if (isProd && !isBuildPhase) {
+    // Fail loudly at runtime instead of silently running with dev secrets.
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return devFallback;
