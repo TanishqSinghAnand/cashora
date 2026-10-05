@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomInt } from "crypto";
+import { createHash, randomInt, timingSafeEqual } from "crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { emailOtpCodes } from "@/db/schema";
@@ -67,7 +67,9 @@ export async function verifyOtp(email: string, code: string): Promise<VerifyOtpR
   if (!otp) return { ok: false, reason: "expired" };
   if (otp.attempts >= MAX_VERIFY_ATTEMPTS) return { ok: false, reason: "too_many_attempts" };
 
-  const matches = hashCode(normalized, code) === otp.codeHash;
+  // Constant-time comparison — codeHash is always a 64-char sha256 hex
+  // digest, so both buffers are always equal length here.
+  const matches = timingSafeEqual(Buffer.from(hashCode(normalized, code), "hex"), Buffer.from(otp.codeHash, "hex"));
 
   if (!matches) {
     await db.update(emailOtpCodes).set({ attempts: otp.attempts + 1 }).where(eq(emailOtpCodes.id, otp.id));
