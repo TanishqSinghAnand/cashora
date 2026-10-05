@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/components/providers/user-provider";
 import "./globals.css";
@@ -52,23 +51,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: "#0f7a5c",
-          colorPrimaryForeground: "#f6fff9",
-          borderRadius: "0.75rem",
-        },
-      }}
-    >
-      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-        <body className="min-h-full flex flex-col bg-background text-foreground" suppressHydrationWarning>
-          <UserProvider>
-            {children}
-            <Toaster position="top-center" richColors closeButton />
-          </UserProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-background text-foreground" suppressHydrationWarning>
+        <UserProvider>
+          {children}
+          <Toaster position="top-center" richColors closeButton />
+        </UserProvider>
+      </body>
+    </html>
   );
 }

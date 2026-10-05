@@ -4,14 +4,15 @@
 
 Cashora is a collaborative digital cashbook. Track cash in and cash out, share
 a cashbook with a partner, and keep records synchronized to a Google
-Spreadsheet — sign in with Google or a one-time emailed code instead of a
-password.
+Spreadsheet — sign in with a one-time code emailed to you instead of a
+password, no third-party login provider involved.
 
 ## Features
 
-- **Auth** — Google sign-in or a one-time emailed code (Clerk), so a
-  collaborator's access is always tied to a verified email address, not just
-  a guessable link.
+- **Auth** — self-hosted email OTP sign-in: enter your email, get a 6-digit
+  code, enter it. No password, no third-party identity provider — a
+  collaborator's access is tied to a verified email address they actually
+  received a code at, not just a guessable link.
 - **Cashbooks** — create multiple books (Personal, Shop, Business, ...) with a
   currency and initial balance.
 - **Transactions** — cash in / cash out with person, category, notes;
@@ -33,7 +34,7 @@ password.
 ## Tech stack
 
 - **Framework:** Next.js 16 (App Router, Turbopack), React 19, TypeScript
-- **Auth:** Clerk (Google OAuth + email OTP-code sign-in)
+- **Auth:** self-hosted email OTP (nodemailer/SMTP + signed session JWTs)
 - **Styling:** Tailwind CSS v4
 - **Database:** Postgres (Neon serverless driver) via Drizzle ORM
 - **Validation:** Zod
@@ -52,7 +53,7 @@ src/
   db/             # Drizzle schema + client
   hooks/          # Client-side SWR hooks
   lib/            # Framework-agnostic helpers (money, env, utils)
-  server/         # Server-only logic: auth, permissions, balance, audit
+  server/         # Server-only logic: auth, otp, mailer, permissions, balance, audit
   services/       # External integrations (Google Sheets)
   types/          # Shared TypeScript types
   validations/    # Zod schemas
@@ -70,10 +71,9 @@ npm run db:migrate           # apply the schema to your Postgres database
 npm run dev
 ```
 
-Open http://localhost:3000 and sign in — Clerk's Google/email-OTP sign-in
-works on `localhost` with no extra setup (unlike OAuth flows that require a
-registered production domain). After signing in once for real, run
-`npm run db:seed` to attach demo cashbooks to your account.
+Open http://localhost:3000 and sign in with your email. After signing in
+once for real, run `npm run db:seed` to attach demo cashbooks to your
+account.
 
 ### Environment variables
 
@@ -82,8 +82,9 @@ See `.env.example` for the full list with comments. Summary:
 | Variable | Required | Notes |
 |---|---|---|
 | `DATABASE_URL` | Yes | Postgres connection string (Neon recommended) |
+| `AUTH_SECRET` | Production only | 32+ byte random secret signing session JWTs |
 | `NEXT_PUBLIC_APP_URL` | Yes | Public URL of the deployment |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Yes | See below |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | For sign-in | See below |
 | `GOOGLE_SHEETS_ID` / `GOOGLE_SERVICE_ACCOUNT_EMAIL` / `GOOGLE_PRIVATE_KEY` | For Sheets sync | See below |
 
 ### Database setup
@@ -102,28 +103,41 @@ support interactive transactions (`db.transaction()`) — multi-step writes are
 made idempotent via unique indexes instead (see
 `src/app/api/invitations/[token]/accept/route.ts` for an example).
 
-## Auth setup (Clerk)
+## Auth setup (email OTP via SMTP)
 
-1. Create a free account at [clerk.com](https://clerk.com) and a new
-   application.
-2. Under **Configure → SSO Connections**, enable **Google**. Clerk's shared
-   development credentials work immediately with no Google Cloud setup —
-   good enough until you want the consent screen to say "Cashora" instead of
-   "Clerk", which needs your own OAuth client from Google Cloud Console.
-3. Under **Configure → Email, Phone, Username**, make sure email address is
-   enabled with **"Email verification code"** — that's the OTP sign-in path.
-4. Copy `Publishable key` and `Secret key` from **Configure → API Keys** into
-   `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY`.
+No third-party login provider — a dedicated mailbox sends the codes.
 
-Our `/login` page hosts Clerk's `<SignIn/>` component directly (no separate
-Clerk-hosted pages, no catch-all route needed — it uses hash-based routing).
-`getCurrentUser()` (`src/server/auth.ts`) lazily creates our own `users` row
-on first sight of a verified Clerk session — every field we store (name,
-email, photo) is Clerk-verified: Google verifies the email itself, and
-email-code sign-in requires the OTP to be entered correctly before Clerk
-issues a session at all. This is what makes cashbook invitations trustworthy:
-an invite is tied to an email address, and only a session with that
-*verified* email can accept it.
+1. Use a **dedicated mailbox**, not your personal account (e.g.
+   `cashora.noreply@gmail.com`), so you're never handing the app your real
+   account's credentials.
+2. Every major provider blocks raw-password SMTP login now — you need an
+   **App Password** instead. For Gmail: enable 2-Step Verification, then
+   Google Account → Security → 2-Step Verification → App Passwords → generate
+   one for "Mail". It's a revocable token, not your real password.
+3. Set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER` to the full
+   address, `SMTP_PASSWORD` to the App Password, and `SMTP_FROM` to how it
+   should appear (e.g. `"Cashora <cashora.noreply@gmail.com>"`).
+4. No custom domain or DNS records needed — this sends as a real mailbox you
+   control, not through a transactional-email API that requires domain
+   verification before it'll deliver to arbitrary recipients. Gmail's free
+   limit is ~500 sends/day, far more than a small app needs.
+
+How it works end to end (`src/server/otp.ts`, `src/server/mailer.ts`,
+`src/server/auth.ts`):
+
+- `/api/auth/otp/request` generates a 6-digit code, stores its SHA-256 hash
+  (peppered with `AUTH_SECRET`, never the plaintext code) with a 10-minute
+  expiry, and emails it. Rate-limited per IP and per email, plus a 60s resend
+  cooldown.
+- `/api/auth/otp/verify` checks the code against the stored hash, capping
+  wrong guesses at 5 attempts before the code is dead. On success it
+  finds-or-creates the `users` row by email and issues a session: a signed
+  JWT (`jose`) whose `jti` is also recorded in `authentication_sessions`, so
+  sign-out actually revokes it server-side instead of just deleting a cookie.
+- This is what makes cashbook invitations trustworthy: every account was
+  created by proving control of that exact inbox, so an invitation's email
+  must match the accepting session's email (`/api/invitations/[token]/accept`
+  enforces this, not just "whoever has the link").
 
 ## Google Sheets setup
 
@@ -181,14 +195,15 @@ case (a user who is neither owner nor collaborator gets rejected).
 - Every cashbook/transaction API route resolves access through
   `getAuthorizedCashbook()` (`src/server/permissions.ts`) — never trust a
   `cashbookId` from the client without it.
-- Sessions and their cookies are entirely managed by Clerk
-  (`clerkMiddleware()` in `src/middleware.ts` protects
-  `/dashboard`, `/cashbooks`, `/invite`, `/activity`, `/profile`); we only
-  ever read the verified `userId`/email Clerk hands us.
-- A user row is only ever created from a Clerk-verified session — an
-  invitation's email must match the accepting session's verified email in
-  spirit (the invite link itself is the credential; anyone signing in and
-  opening it can accept, so keep the link as private as an invite).
-- Secrets never leave the server: Google service account credentials and the
-  Clerk secret key are only ever read in `server/`, `services/`, and API
-  route files, never in client components.
+- Sessions are JWTs (`jose`) whose `jti` is also recorded in
+  `authentication_sessions`, so logout/revocation actually works (a bare JWT
+  check alone can't be revoked before expiry).
+- OTP codes are rate-limited (per-IP and per-email request limits, a resend
+  cooldown, and a capped number of verify attempts per code) and stored as
+  salted/peppered hashes, never plaintext.
+- A user row is only ever created by verifying a code sent to that exact
+  inbox — so an invitation's email must match the accepting session's email
+  (`/api/invitations/[token]/accept` enforces this).
+- Secrets never leave the server: SMTP credentials, Google service account
+  credentials, and `AUTH_SECRET` are only ever read in `server/`,
+  `services/`, and API route files, never in client components.

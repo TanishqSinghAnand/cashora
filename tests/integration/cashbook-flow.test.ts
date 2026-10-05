@@ -17,9 +17,9 @@ runIntegration("cashbook flow (integration, real Postgres)", () => {
 
   beforeAll(async () => {
     const suffix = nanoid(8);
-    const [owner] = await db.insert(users).values({ name: "Test Owner", clerkId: `test:owner:${suffix}` }).returning();
-    const [collab] = await db.insert(users).values({ name: "Test Collaborator", clerkId: `test:collab:${suffix}` }).returning();
-    const [stranger] = await db.insert(users).values({ name: "Test Stranger", clerkId: `test:stranger:${suffix}` }).returning();
+    const [owner] = await db.insert(users).values({ name: "Test Owner", email: `test-owner-${suffix}@example.com` }).returning();
+    const [collab] = await db.insert(users).values({ name: "Test Collaborator", email: `test-collab-${suffix}@example.com` }).returning();
+    const [stranger] = await db.insert(users).values({ name: "Test Stranger", email: `test-stranger-${suffix}@example.com` }).returning();
     ownerId = owner.id;
     collaboratorId = collab.id;
     strangerId = stranger.id;

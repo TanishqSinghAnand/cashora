@@ -8,9 +8,9 @@ import * as schema from "../src/db/schema";
 
 /**
  * Seeds demo cashbooks onto the most-recently-active real account in the
- * database. Sign in once for real (Google or email OTP) before running this
- * — since auth is Clerk-verified, there's no way to fabricate a fake owner
- * account the way the old Telegram-demo seed did.
+ * database. Sign in once for real (email OTP) before running this — accounts
+ * are only ever created by verifying a code sent to that inbox, so there's
+ * no way to fabricate a fake owner account.
  */
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -27,11 +27,11 @@ async function main() {
 
   const [partner] = await db
     .insert(schema.users)
-    .values({ name: "Rahul Verma", clerkId: "seed:rahul-verma", email: "rahul.demo@example.com" })
-    .onConflictDoNothing({ target: schema.users.clerkId })
+    .values({ name: "Rahul Verma", email: "rahul.demo@example.com" })
+    .onConflictDoNothing({ target: schema.users.email })
     .returning();
 
-  const partnerUser = partner ?? (await db.select().from(schema.users).where(eq(schema.users.clerkId, "seed:rahul-verma")))[0];
+  const partnerUser = partner ?? (await db.select().from(schema.users).where(eq(schema.users.email, "rahul.demo@example.com")))[0];
 
   const cashbookDefs = [
     { name: "Personal", category: "Personal", initialBalanceMinor: 1_500_000, description: "Personal daily expenses" },

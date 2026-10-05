@@ -5,7 +5,7 @@ export type CashbookRole = "OWNER" | "COLLABORATOR";
 export interface SessionUser {
   id: string;
   name: string;
-  email: string | null;
+  email: string;
   photoUrl: string | null;
   role: "USER" | "SUPER_ADMIN";
 }

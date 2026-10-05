@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { LogOut, Pencil, Check, X } from "lucide-react";
 import { useUser } from "@/components/providers/user-provider";
@@ -14,7 +13,6 @@ import { apiFetch } from "@/lib/api-client";
 export default function ProfilePage() {
   const { user, refresh } = useUser();
   const router = useRouter();
-  const { signOut } = useClerk();
 
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -42,7 +40,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    await signOut();
+    await apiFetch("/api/auth/logout", { method: "POST" });
     toast.success("Signed out");
     router.push("/");
     router.refresh();

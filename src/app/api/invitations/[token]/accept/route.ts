@@ -28,10 +28,10 @@ export async function POST(_req: Request, { params }: Params) {
     }
 
     // The invite is only as good as the email it was sent to — require the
-    // accepting session's Clerk-verified email to match. Google/OTP sign-in
-    // already guarantees `user.email` is verified, so this is what actually
-    // ties "this invitation" to "this specific person", not just "whoever
-    // has the link".
+    // accepting session's email to match. Every account here was created by
+    // verifying a one-time code sent to that exact inbox (see server/otp.ts),
+    // so this is what actually ties "this invitation" to "this specific
+    // person", not just "whoever has the link".
     if (invitation.email && user.email && invitation.email.toLowerCase() !== user.email.toLowerCase()) {
       throw new ForbiddenError(
         `This invitation was sent to ${invitation.email}, but you're signed in as ${user.email}. Sign in with that email to accept it.`

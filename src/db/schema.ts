@@ -3,6 +3,7 @@ import {
   pgEnum,
   text,
   bigint,
+  integer,
   timestamp,
   uuid,
   index,
@@ -23,17 +24,15 @@ export const users = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
-    email: text("email"),
-    clerkId: text("clerk_id").notNull(),
+    // Email is the identity itself — verified via a one-time code sent to
+    // it (see server/otp.ts), never nullable.
+    email: text("email").notNull(),
     photoUrl: text("photo_url"),
     role: userRoleEnum("role").notNull().default("USER"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastActiveAt: timestamp("last_active_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    uniqueIndex("users_clerk_id_idx").on(table.clerkId),
-    index("users_email_idx").on(table.email),
-  ]
+  (table) => [uniqueIndex("users_email_idx").on(table.email)]
 );
 
 export const cashbooks = pgTable(
@@ -143,7 +142,49 @@ export const auditLogs = pgTable(
   (table) => [index("audit_logs_entity_idx").on(table.entity, table.entityId)]
 );
 
-// Sessions and auth rate limiting are handled by Clerk — no local tables needed.
+export const authSessions = pgTable(
+  "authentication_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    userAgent: text("user_agent"),
+    ipAddress: text("ip_address"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("auth_sessions_token_hash_idx").on(table.tokenHash),
+    index("auth_sessions_user_id_idx").on(table.userId),
+  ]
+);
+
+export const authRateLimits = pgTable(
+  "auth_rate_limits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: text("key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("auth_rate_limits_key_idx").on(table.key, table.createdAt)]
+);
+
+export const emailOtpCodes = pgTable(
+  "email_otp_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    codeHash: text("code_hash").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("email_otp_codes_email_idx").on(table.email, table.createdAt)]
+);
 
 export const usersRelations = relations(users, ({ many }) => ({
   cashbooks: many(cashbooks),
