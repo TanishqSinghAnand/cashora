@@ -57,9 +57,9 @@ export default function LandingPage() {
         eyebrow="Security"
         id="security"
         title="Built to keep your books private"
-        description="Google or a one-time emailed code to sign in, verified sessions, and server-side authorization on every single request."
+        description="A one-time code emailed to you to sign in, verified sessions, and server-side authorization on every single request."
         icon={<ShieldCheck size={20} />}
-        points={["Sign in with Google or an emailed OTP — no passwords, ever", "Every cashbook access is checked against the database", "Audit-logged actions across every cashbook"]}
+        points={["Sign in with a one-time emailed code — no passwords, no third-party login", "Every cashbook access is checked against the database", "Audit-logged actions across every cashbook"]}
         visual={<SecurityVisual />}
       />
 
