@@ -8,7 +8,8 @@ import { getAuthorizedCashbook, assertOwner } from "@/server/permissions";
 import { createInvitationSchema } from "@/validations/invitation";
 import { recordAudit } from "@/server/audit";
 import { syncCollaboratorRow } from "@/services/sheets";
-import { env } from "@/lib/env";
+import { sendInviteEmail } from "@/server/mailer";
+import { env, isSmtpConfigured } from "@/lib/env";
 import { handleApiError } from "@/server/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
@@ -59,10 +60,18 @@ export async function POST(req: NextRequest, { params }: Params) {
       acceptedAt: "",
     });
 
-    return NextResponse.json({
-      invitation,
-      inviteLink: `${env.appUrl}/invite/${token}`,
-    });
+    const inviteLink = `${env.appUrl}/invite/${token}`;
+
+    if (isSmtpConfigured) {
+      void sendInviteEmail(input.email, {
+        inviterName: user.name,
+        cashbookName: access.cashbook.name,
+        inviteLink,
+        permission: input.permission,
+      }).catch((err) => console.error("[invite] failed to send invite email", err));
+    }
+
+    return NextResponse.json({ invitation, inviteLink });
   } catch (err) {
     return handleApiError(err);
   }

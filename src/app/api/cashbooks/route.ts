@@ -9,6 +9,8 @@ import { createCashbookSchema } from "@/validations/cashbook";
 import { toMinorUnits } from "@/lib/money";
 import { recordAudit } from "@/server/audit";
 import { syncCashbookRow, syncCollaboratorRow } from "@/services/sheets";
+import { sendInviteEmail } from "@/server/mailer";
+import { env, isSmtpConfigured } from "@/lib/env";
 import { handleApiError } from "@/server/api-utils";
 
 export async function GET() {
@@ -112,6 +114,15 @@ export async function POST(req: NextRequest) {
         invitedAt: invitation.createdAt.toISOString(),
         acceptedAt: "",
       });
+
+      if (isSmtpConfigured) {
+        void sendInviteEmail(input.collaboratorEmail, {
+          inviterName: user.name,
+          cashbookName: created.name,
+          inviteLink: `${env.appUrl}/invite/${token}`,
+          permission: "EDIT",
+        }).catch((err) => console.error("[invite] failed to send invite email", err));
+      }
     }
 
     return NextResponse.json({ cashbook: created }, { status: 201 });

@@ -13,6 +13,7 @@ import { apiFetch } from "@/lib/api-client";
 
 export function InviteDrawer({ cashbookId, open, onClose }: { cashbookId: string; open: boolean; onClose: () => void }) {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const {
@@ -30,8 +31,9 @@ export function InviteDrawer({ cashbookId, open, onClose }: { cashbookId: string
         body: JSON.stringify(data),
       });
       setInviteLink(res.inviteLink);
+      setInvitedEmail(data.email);
       reset();
-      toast.success("Invitation created");
+      toast.success("Invitation sent");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create invitation");
     } finally {
@@ -50,6 +52,7 @@ export function InviteDrawer({ cashbookId, open, onClose }: { cashbookId: string
       open={open}
       onClose={() => {
         setInviteLink(null);
+        setInvitedEmail(null);
         onClose();
       }}
       title="Invite a collaborator"
@@ -57,14 +60,23 @@ export function InviteDrawer({ cashbookId, open, onClose }: { cashbookId: string
     >
       {inviteLink ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted">Share this link with your collaborator (via WhatsApp, email, etc.):</p>
+          <p className="text-sm text-muted">
+            We emailed <span className="font-medium text-foreground">{invitedEmail}</span> with this invite. You can
+            also share the link directly:
+          </p>
           <div className="flex gap-2">
             <Input readOnly value={inviteLink} className="text-xs" />
             <Button variant="outline" size="icon" onClick={copyLink} aria-label="Copy link">
               <Copy size={16} />
             </Button>
           </div>
-          <Button variant="secondary" onClick={() => setInviteLink(null)}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setInviteLink(null);
+              setInvitedEmail(null);
+            }}
+          >
             Invite someone else
           </Button>
         </div>
