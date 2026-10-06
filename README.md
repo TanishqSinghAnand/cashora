@@ -139,6 +139,30 @@ How it works end to end (`src/server/otp.ts`, `src/server/mailer.ts`,
   must match the accepting session's email (`/api/invitations/[token]/accept`
   enforces this, not just "whoever has the link").
 
+### Known limitation: invite emails can silently fail for first-time recipients
+
+OTP codes deliver reliably. Collaborator-invite emails (`sendInviteEmail` in
+`src/server/mailer.ts`) do not, for one specific case: when the recipient has
+no prior email relationship with the sending mailbox, Gmail can accept the
+message over SMTP (`250 OK`) and then silently discard it server-side —
+nothing in Spam, nothing in any tab, no bounce. This was confirmed by sending
+the exact same invite content (with and without links, from both local and
+Vercel) to two recipients: it arrived for one with an established
+relationship to the sender, and vanished for one without, every time.
+
+This is Gmail's own anti-abuse filtering for automated mail sent through a
+personal account via SMTP, not a bug in this app's code — there's nothing in
+the request/response to catch or retry, and no visibility into why a given
+send was dropped. A transactional email provider (e.g. SendGrid with
+single-sender verification, or a fully domain-authenticated sender) would
+fix this, but was deliberately not adopted here — see the tradeoff above.
+
+**Because of this, the in-app "Pending Invitations" list on the dashboard is
+the reliable notification path, not the email.** The invite email is a
+best-effort convenience; don't depend on it alone when testing or
+demoing — check the dashboard, or share the invite link directly (the invite
+drawer always shows it).
+
 ## Google Sheets setup
 
 1. Create a project in [Google Cloud Console](https://console.cloud.google.com/).

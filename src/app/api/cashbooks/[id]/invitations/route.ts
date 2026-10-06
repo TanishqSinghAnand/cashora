@@ -2,7 +2,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { invitations, users, auditLogs } from "@/db/schema";
+import { invitations, users } from "@/db/schema";
 import { requireUser } from "@/server/auth";
 import { getAuthorizedCashbook, assertOwner } from "@/server/permissions";
 import { createInvitationSchema } from "@/validations/invitation";
@@ -71,36 +71,7 @@ export async function POST(req: NextRequest, { params }: Params) {
           cashbookName: access.cashbook.name,
           inviteLink,
           permission: input.permission,
-        })
-          .then(() =>
-            db.insert(auditLogs).values({
-              userId: null,
-              action: "INVITE_COLLABORATOR",
-              entity: "debug_email",
-              entityId: invitation.id,
-              description: `OK: invite email sent to ${input.email}`,
-            })
-          )
-          .catch((err) => {
-            console.error("[invite] failed to send invite email", err);
-            return db.insert(auditLogs).values({
-              userId: null,
-              action: "INVITE_COLLABORATOR",
-              entity: "debug_email",
-              entityId: invitation.id,
-              description: `FAILED: ${err instanceof Error ? err.message : String(err)}`,
-            });
-          })
-      );
-    } else {
-      after(
-        db.insert(auditLogs).values({
-          userId: null,
-          action: "INVITE_COLLABORATOR",
-          entity: "debug_email",
-          entityId: invitation.id,
-          description: `SKIPPED: isSmtpConfigured was false`,
-        })
+        }).catch((err) => console.error("[invite] failed to send invite email", err))
       );
     }
 
