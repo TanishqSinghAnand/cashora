@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { invitations, collaborators, cashbooks, users } from "@/db/schema";
@@ -63,17 +63,19 @@ export async function POST(_req: Request, { params }: Params) {
       description: `${user.name} accepted the invitation to "${cashbook.name}"`,
     });
 
-    void syncCollaboratorRow({
-      cashbookId: cashbook.id,
-      cashbookName: cashbook.name,
-      owner: owner?.name ?? "",
-      collaborator: user.name,
-      collaboratorEmail: invitation.email ?? "",
-      permission: invitation.permission,
-      status: "ACCEPTED",
-      invitedAt: invitation.createdAt.toISOString(),
-      acceptedAt: new Date().toISOString(),
-    });
+    after(
+      syncCollaboratorRow({
+        cashbookId: cashbook.id,
+        cashbookName: cashbook.name,
+        owner: owner?.name ?? "",
+        collaborator: user.name,
+        collaboratorEmail: invitation.email ?? "",
+        permission: invitation.permission,
+        status: "ACCEPTED",
+        invitedAt: invitation.createdAt.toISOString(),
+        acceptedAt: new Date().toISOString(),
+      })
+    );
 
     return NextResponse.json({ ok: true, cashbookId: cashbook.id });
   } catch (err) {

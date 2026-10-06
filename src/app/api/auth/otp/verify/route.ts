@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -42,13 +42,15 @@ export async function POST(req: NextRequest) {
       description: `${user.name} signed in via email code`,
     });
     const [row] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
-    void syncUserRow({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      createdAt: row.createdAt.toISOString(),
-      lastActiveAt: row.lastActiveAt.toISOString(),
-    });
+    after(
+      syncUserRow({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: row.createdAt.toISOString(),
+        lastActiveAt: row.lastActiveAt.toISOString(),
+      })
+    );
 
     return NextResponse.json({ ok: true, user });
   } catch (err) {

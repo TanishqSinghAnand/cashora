@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { transactions } from "@/db/schema";
@@ -59,20 +59,22 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       description: `${user.name} updated a transaction on "${access.cashbook.name}"`,
     });
 
-    void syncTransactionRow({
-      id: updated.id,
-      cashbookId: updated.cashbookId,
-      cashbookName: access.cashbook.name,
-      type: updated.type,
-      amount: updated.amountMinor,
-      description: updated.description ?? "",
-      person: updated.person ?? "",
-      category: updated.category ?? "",
-      notes: updated.notes ?? "",
-      createdBy: user.name,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
+    after(
+      syncTransactionRow({
+        id: updated.id,
+        cashbookId: updated.cashbookId,
+        cashbookName: access.cashbook.name,
+        type: updated.type,
+        amount: updated.amountMinor,
+        description: updated.description ?? "",
+        person: updated.person ?? "",
+        category: updated.category ?? "",
+        notes: updated.notes ?? "",
+        createdBy: user.name,
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+      })
+    );
 
     return NextResponse.json({ transaction: updated });
   } catch (err) {

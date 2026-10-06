@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -21,13 +21,15 @@ export async function PATCH(req: NextRequest) {
 
     const [updated] = await db.update(users).set({ name }).where(eq(users.id, user.id)).returning();
 
-    void syncUserRow({
-      id: updated.id,
-      name: updated.name,
-      email: updated.email,
-      createdAt: updated.createdAt.toISOString(),
-      lastActiveAt: updated.lastActiveAt.toISOString(),
-    });
+    after(
+      syncUserRow({
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        createdAt: updated.createdAt.toISOString(),
+        lastActiveAt: updated.lastActiveAt.toISOString(),
+      })
+    );
 
     return NextResponse.json({ user: { ...user, name: updated.name } });
   } catch (err) {

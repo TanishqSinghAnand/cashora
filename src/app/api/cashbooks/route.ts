@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
@@ -69,17 +69,19 @@ export async function POST(req: NextRequest) {
       description: `${user.name} created cashbook "${created.name}"`,
     });
 
-    void syncCashbookRow({
-      id: created.id,
-      name: created.name,
-      ownerId: user.id,
-      ownerName: user.name,
-      currency: created.currency,
-      initialBalance: created.initialBalanceMinor,
-      currentBalance: created.initialBalanceMinor,
-      createdAt: created.createdAt.toISOString(),
-      updatedAt: created.updatedAt.toISOString(),
-    });
+    after(
+      syncCashbookRow({
+        id: created.id,
+        name: created.name,
+        ownerId: user.id,
+        ownerName: user.name,
+        currency: created.currency,
+        initialBalance: created.initialBalanceMinor,
+        currentBalance: created.initialBalanceMinor,
+        createdAt: created.createdAt.toISOString(),
+        updatedAt: created.updatedAt.toISOString(),
+      })
+    );
 
     if (input.collaboratorEmail) {
       const token = nanoid(32);
@@ -103,25 +105,29 @@ export async function POST(req: NextRequest) {
         description: `${user.name} invited ${input.collaboratorEmail} to "${created.name}"`,
       });
 
-      void syncCollaboratorRow({
-        cashbookId: created.id,
-        cashbookName: created.name,
-        owner: user.name,
-        collaborator: input.collaboratorEmail,
-        collaboratorEmail: input.collaboratorEmail,
-        permission: "EDIT",
-        status: "PENDING",
-        invitedAt: invitation.createdAt.toISOString(),
-        acceptedAt: "",
-      });
+      after(
+        syncCollaboratorRow({
+          cashbookId: created.id,
+          cashbookName: created.name,
+          owner: user.name,
+          collaborator: input.collaboratorEmail,
+          collaboratorEmail: input.collaboratorEmail,
+          permission: "EDIT",
+          status: "PENDING",
+          invitedAt: invitation.createdAt.toISOString(),
+          acceptedAt: "",
+        })
+      );
 
       if (isSmtpConfigured) {
-        void sendInviteEmail(input.collaboratorEmail, {
-          inviterName: user.name,
-          cashbookName: created.name,
-          inviteLink: `${env.appUrl}/invite/${token}`,
-          permission: "EDIT",
-        }).catch((err) => console.error("[invite] failed to send invite email", err));
+        after(
+          sendInviteEmail(input.collaboratorEmail, {
+            inviterName: user.name,
+            cashbookName: created.name,
+            inviteLink: `${env.appUrl}/invite/${token}`,
+            permission: "EDIT",
+          }).catch((err) => console.error("[invite] failed to send invite email", err))
+        );
       }
     }
 

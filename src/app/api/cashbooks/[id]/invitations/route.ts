@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -48,27 +48,31 @@ export async function POST(req: NextRequest, { params }: Params) {
       description: `${user.name} invited ${input.email} to "${access.cashbook.name}"`,
     });
 
-    void syncCollaboratorRow({
-      cashbookId: id,
-      cashbookName: access.cashbook.name,
-      owner: user.name,
-      collaborator: invitedUser?.name ?? input.email,
-      collaboratorEmail: input.email,
-      permission: input.permission,
-      status: "PENDING",
-      invitedAt: invitation.createdAt.toISOString(),
-      acceptedAt: "",
-    });
+    after(
+      syncCollaboratorRow({
+        cashbookId: id,
+        cashbookName: access.cashbook.name,
+        owner: user.name,
+        collaborator: invitedUser?.name ?? input.email,
+        collaboratorEmail: input.email,
+        permission: input.permission,
+        status: "PENDING",
+        invitedAt: invitation.createdAt.toISOString(),
+        acceptedAt: "",
+      })
+    );
 
     const inviteLink = `${env.appUrl}/invite/${token}`;
 
     if (isSmtpConfigured) {
-      void sendInviteEmail(input.email, {
-        inviterName: user.name,
-        cashbookName: access.cashbook.name,
-        inviteLink,
-        permission: input.permission,
-      }).catch((err) => console.error("[invite] failed to send invite email", err));
+      after(
+        sendInviteEmail(input.email, {
+          inviterName: user.name,
+          cashbookName: access.cashbook.name,
+          inviteLink,
+          permission: input.permission,
+        }).catch((err) => console.error("[invite] failed to send invite email", err))
+      );
     }
 
     return NextResponse.json({ invitation, inviteLink });

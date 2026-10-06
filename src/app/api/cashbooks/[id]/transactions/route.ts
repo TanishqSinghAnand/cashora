@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { and, desc, eq, gte, ilike, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/db";
 import { transactions, users } from "@/db/schema";
@@ -103,20 +103,22 @@ export async function POST(req: NextRequest, { params }: Params) {
       description: `${user.name} recorded ${input.type === "CASH_IN" ? "cash in" : "cash out"} of ${input.amount} on "${access.cashbook.name}"`,
     });
 
-    void syncTransactionRow({
-      id: created.id,
-      cashbookId: id,
-      cashbookName: access.cashbook.name,
-      type: created.type,
-      amount: created.amountMinor,
-      description: created.description ?? "",
-      person: created.person ?? "",
-      category: created.category ?? "",
-      notes: created.notes ?? "",
-      createdBy: user.name,
-      createdAt: created.createdAt.toISOString(),
-      updatedAt: created.updatedAt.toISOString(),
-    });
+    after(
+      syncTransactionRow({
+        id: created.id,
+        cashbookId: id,
+        cashbookName: access.cashbook.name,
+        type: created.type,
+        amount: created.amountMinor,
+        description: created.description ?? "",
+        person: created.person ?? "",
+        category: created.category ?? "",
+        notes: created.notes ?? "",
+        createdBy: user.name,
+        createdAt: created.createdAt.toISOString(),
+        updatedAt: created.updatedAt.toISOString(),
+      })
+    );
 
     return NextResponse.json({ transaction: created }, { status: 201 });
   } catch (err) {
