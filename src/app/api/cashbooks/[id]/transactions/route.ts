@@ -8,6 +8,8 @@ import { createTransactionSchema } from "@/validations/transaction";
 import { toMinorUnits } from "@/lib/money";
 import { recordAudit } from "@/server/audit";
 import { syncTransactionRow } from "@/services/sheets";
+import { notifyCashbookUpdate } from "@/server/export";
+import { formatMoney } from "@/lib/money";
 import { handleApiError } from "@/server/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
@@ -118,6 +120,14 @@ export async function POST(req: NextRequest, { params }: Params) {
         createdAt: created.createdAt.toISOString(),
         updatedAt: created.updatedAt.toISOString(),
       })
+    );
+
+    after(
+      notifyCashbookUpdate(
+        id,
+        user.name,
+        `recorded ${input.type === "CASH_IN" ? "cash in" : "cash out"} of ${formatMoney(created.amountMinor, access.cashbook.currency)}`
+      ).catch((err) => console.error("[notify] cashbook update email failed", err))
     );
 
     return NextResponse.json({ transaction: created }, { status: 201 });

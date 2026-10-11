@@ -8,6 +8,7 @@ import { updateTransactionSchema } from "@/validations/transaction";
 import { toMinorUnits } from "@/lib/money";
 import { recordAudit } from "@/server/audit";
 import { syncTransactionRow } from "@/services/sheets";
+import { notifyCashbookUpdate } from "@/server/export";
 import { handleApiError } from "@/server/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
@@ -76,6 +77,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       })
     );
 
+    after(
+      notifyCashbookUpdate(access.cashbook.id, user.name, "updated a transaction").catch((err) =>
+        console.error("[notify] cashbook update email failed", err)
+      )
+    );
+
     return NextResponse.json({ transaction: updated });
   } catch (err) {
     return handleApiError(err);
@@ -99,6 +106,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       cashbookId: access.cashbook.id,
       description: `${user.name} deleted a transaction on "${access.cashbook.name}"`,
     });
+
+    after(
+      notifyCashbookUpdate(access.cashbook.id, user.name, "deleted a transaction").catch((err) =>
+        console.error("[notify] cashbook update email failed", err)
+      )
+    );
 
     return NextResponse.json({ ok: true, transaction: tx });
   } catch (err) {

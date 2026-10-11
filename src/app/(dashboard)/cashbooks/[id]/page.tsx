@@ -1,13 +1,13 @@
 "use client";
 
 import { use, useState, useCallback } from "react";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, FileText, FileSpreadsheet } from "lucide-react";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
 import { useUser } from "@/components/providers/user-provider";
 import { useCashbookDetail } from "@/hooks/use-cashbook-detail";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import { AddCashDrawer } from "@/components/cashbook/add-cash-drawer";
@@ -74,11 +74,19 @@ export default function CashbookDetailPage({ params }: { params: Promise<{ id: s
         </Card>
       </div>
 
-      {permission === "EDIT" && (
-        <Button size="lg" onClick={() => setAddCashOpen(true)} className="w-full sm:w-auto self-start">
-          <Plus size={18} /> Add Cash
-        </Button>
-      )}
+      <div className="flex flex-wrap items-center gap-3">
+        {permission === "EDIT" && (
+          <Button size="lg" onClick={() => setAddCashOpen(true)}>
+            <Plus size={18} /> Add Cash
+          </Button>
+        )}
+        <a href={`/api/cashbooks/${id}/export?format=pdf`} download className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <FileText size={18} /> Download PDF
+        </a>
+        <a href={`/api/cashbooks/${id}/export?format=xlsx`} download className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <FileSpreadsheet size={18} /> Download Excel
+        </a>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6">
         <TransactionLedger

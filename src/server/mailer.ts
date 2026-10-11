@@ -63,3 +63,62 @@ export async function sendInviteEmail(
     `,
   });
 }
+
+export async function sendCashbookUpdateEmail(
+  to: string[],
+  opts: {
+    actorName: string;
+    cashbookName: string;
+    changeSummary: string;
+    balanceText: string;
+    cashInText: string;
+    cashOutText: string;
+    pdfBuffer: Buffer;
+    excelBuffer: Buffer;
+    fileSlug: string;
+  }
+) {
+  if (to.length === 0) return;
+  const transport = getTransporter();
+  const { actorName, cashbookName, changeSummary, balanceText, cashInText, cashOutText, pdfBuffer, excelBuffer, fileSlug } = opts;
+
+  await transport.sendMail({
+    from: env.smtp!.from,
+    to,
+    subject: `${actorName} ${changeSummary} — ${cashbookName}`,
+    text: `${actorName} ${changeSummary} on "${cashbookName}". Balance: ${balanceText}, Cash In: ${cashInText}, Cash Out: ${cashOutText}. The full statement is attached as PDF and Excel.`,
+    html: `
+      <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; color: #10120f;">
+        <p style="font-size: 14px; color: #6b7169; margin: 0 0 16px;">
+          <strong>${actorName}</strong> ${changeSummary} on
+        </p>
+        <p style="font-size: 24px; font-weight: 700; margin: 0 0 16px;">${cashbookName}</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          <tr>
+            <td style="padding: 8px; background: #f0f2ee; border-radius: 8px 0 0 8px; text-align: center;">
+              <p style="font-size: 10px; color: #6b7169; margin: 0 0 4px; text-transform: uppercase;">Balance</p>
+              <p style="font-size: 14px; font-weight: 700; margin: 0;">${balanceText}</p>
+            </td>
+            <td style="padding: 8px; background: #f0f2ee; text-align: center;">
+              <p style="font-size: 10px; color: #6b7169; margin: 0 0 4px; text-transform: uppercase;">Cash In</p>
+              <p style="font-size: 14px; font-weight: 700; margin: 0; color: #0f9d6a;">${cashInText}</p>
+            </td>
+            <td style="padding: 8px; background: #f0f2ee; border-radius: 0 8px 8px 0; text-align: center;">
+              <p style="font-size: 10px; color: #6b7169; margin: 0 0 4px; text-transform: uppercase;">Cash Out</p>
+              <p style="font-size: 14px; font-weight: 700; margin: 0; color: #e34a4a;">${cashOutText}</p>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size: 12px; color: #6b7169; margin: 0;">The full cashbook statement is attached as PDF and Excel.</p>
+      </div>
+    `,
+    attachments: [
+      { filename: `${fileSlug}-statement.pdf`, content: pdfBuffer, contentType: "application/pdf" },
+      {
+        filename: `${fileSlug}-statement.xlsx`,
+        content: excelBuffer,
+        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    ],
+  });
+}
