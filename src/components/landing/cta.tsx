@@ -5,8 +5,9 @@ import { Logo } from "@/components/brand/logo";
 
 export function CtaSection() {
   return (
-    <section className="py-24 px-4">
-      <div className="max-w-3xl mx-auto glass rounded-3xl p-12 text-center flex flex-col items-center gap-5">
+    <section className="py-24 px-4 relative overflow-hidden">
+      <div className="aurora-bg opacity-60" aria-hidden />
+      <div className="max-w-3xl mx-auto glow-border rounded-3xl p-12 text-center flex flex-col items-center gap-5">
         <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Start tracking cash the modern way</h2>
         <p className="text-muted max-w-md">Free to start. No spreadsheets to fight with. Your partners see the same numbers you do.</p>
         <Link href="/login" className={buttonVariants({ size: "lg" })}>

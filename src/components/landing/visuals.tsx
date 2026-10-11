@@ -3,7 +3,10 @@ import { ArrowDownLeft, ArrowUpRight, Sheet as SheetIcon, ShieldCheck, Users } f
 export function TrackCashVisual() {
   return (
     <div className="glass rounded-3xl p-6">
-      <p className="text-xs text-muted mb-1">Today</p>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs text-muted">Today</p>
+        <span className="live-dot" aria-hidden />
+      </div>
       <div className="flex flex-col divide-y divide-border">
         {[
           { icon: ArrowDownLeft, label: "Customer Payment", amount: "+₹5,000", color: "text-cash-in" },
@@ -15,7 +18,7 @@ export function TrackCashVisual() {
               <row.icon size={16} />
             </div>
             <p className="text-sm flex-1">{row.label}</p>
-            <p className={`text-sm font-semibold ${row.color}`}>{row.amount}</p>
+            <p className={`text-sm font-semibold font-mono ${row.color}`}>{row.amount}</p>
           </div>
         ))}
       </div>
@@ -31,12 +34,17 @@ export function CollaborateVisual() {
         <p className="text-sm font-medium">Sharma General Store</p>
       </div>
       {[
-        { name: "Tanishq", role: "Owner" },
-        { name: "Rahul", role: "Can edit" },
+        { name: "Tanishq", role: "Owner", online: true },
+        { name: "Rahul", role: "Can edit", online: true },
       ].map((p) => (
         <div key={p.name} className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary">
-            {p.name[0]}
+          <div className="relative">
+            <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary">
+              {p.name[0]}
+            </div>
+            {p.online && (
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-surface" />
+            )}
           </div>
           <p className="text-sm flex-1">{p.name}</p>
           <span className="text-xs text-muted">{p.role}</span>
@@ -53,7 +61,7 @@ export function SheetsVisual() {
         <SheetIcon size={16} className="text-primary" />
         <p className="text-sm font-medium">Transactions</p>
       </div>
-      <div className="grid grid-cols-4 gap-px bg-border rounded-lg overflow-hidden text-[11px]">
+      <div className="grid grid-cols-4 gap-px bg-border rounded-lg overflow-hidden text-[11px] font-mono">
         {["ID", "Type", "Amount", "Person"].map((h) => (
           <div key={h} className="bg-surface-2 p-2 font-medium">
             {h}

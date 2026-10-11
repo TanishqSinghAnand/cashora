@@ -1,67 +1,45 @@
 @import "tailwindcss";
 
+/*
+ * Cashora runs a single deliberate dark (OLED-leaning) palette — no light
+ * variant. Fintech/trust products read as more serious and data-forward in
+ * dark mode, and a single palette keeps every surface (landing, dashboard,
+ * charts) consistent instead of maintaining two parallel systems.
+ */
 :root {
-  --background: #f6f7f5;
-  --surface: #ffffff;
-  --surface-2: #f0f2ee;
-  --foreground: #10120f;
-  --muted: #6b7169;
-  --border: rgba(16, 18, 15, 0.08);
-  --primary: #0f7a5c;
-  --primary-foreground: #f6fff9;
+  --background: #040609;
+  --surface: #0a0d12;
+  --surface-2: #111520;
+  --surface-3: #171c29;
+  --foreground: #f3f5f7;
+  --muted: #8c94a3;
+  --border: rgba(243, 245, 247, 0.08);
+  --primary: #1fe08a;
+  --primary-foreground: #04140d;
   --accent: #d6ff5c;
-  --cash-in: #0f9d6a;
-  --cash-out: #e34a4a;
-  --ring: #0f7a5c;
-  --radius: 16px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --background: #08090a;
-    --surface: #101211;
-    --surface-2: #16181a;
-    --foreground: #f4f6f2;
-    --muted: #8f958d;
-    --border: rgba(244, 246, 242, 0.08);
-    --primary: #22c98e;
-    --primary-foreground: #04120c;
-    --accent: #d6ff5c;
-    --cash-in: #22c98e;
-    --cash-out: #ff6161;
-    --ring: #22c98e;
-  }
-}
-
-:root[data-theme="dark"] {
-  --background: #08090a;
-  --surface: #101211;
-  --surface-2: #16181a;
-  --foreground: #f4f6f2;
-  --muted: #8f958d;
-  --border: rgba(244, 246, 242, 0.08);
-  --primary: #22c98e;
-  --primary-foreground: #04120c;
-  --accent: #d6ff5c;
-  --cash-in: #22c98e;
-  --cash-out: #ff6161;
-  --ring: #22c98e;
+  --accent-2: #5ea1ff;
+  --cash-in: #1fe08a;
+  --cash-out: #ff5c70;
+  --ring: #1fe08a;
+  --radius: 18px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-cash-in: var(--cash-in);
   --color-cash-out: var(--cash-out);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
 }
 
 * {
@@ -69,7 +47,7 @@
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 body {
@@ -103,8 +81,74 @@ body {
   color: transparent;
 }
 
+/* Faint fixed grain so pure-black surfaces don't read as flat/banded. */
 .noise-overlay {
   position: relative;
+}
+.noise-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Low-contrast structural grid, the classic data/fintech dark-UI backdrop. */
+.grid-overlay {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+}
+
+.aurora-bg {
+  position: absolute;
+  inset: -10% -10% auto -10%;
+  height: 140%;
+  pointer-events: none;
+  background:
+    radial-gradient(640px circle at 18% 15%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 60%),
+    radial-gradient(560px circle at 82% 10%, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 60%),
+    radial-gradient(480px circle at 50% 35%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 65%);
+  filter: blur(10px);
+}
+
+.glow-border {
+  position: relative;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 50%, transparent), color-mix(in srgb, var(--accent-2) 40%, transparent) 50%, transparent 90%) border-box;
+}
+
+.live-dot {
+  position: relative;
+  display: inline-flex;
+  height: 7px;
+  width: 7px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  animation: live-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes live-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
 }
 
 .scrollbar-none::-webkit-scrollbar {

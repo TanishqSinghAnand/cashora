@@ -1,6 +1,7 @@
 import { Wallet, Users, RefreshCw, Sheet as SheetIcon, ShieldCheck } from "lucide-react";
 import { LandingNavbar } from "@/components/landing/navbar";
 import { Hero } from "@/components/landing/hero";
+import { StatStrip } from "@/components/landing/stat-strip";
 import { CinematicSequence } from "@/components/landing/cinematic-sequence";
 import { FeatureSection } from "@/components/landing/feature-section";
 import { TrackCashVisual, CollaborateVisual, SheetsVisual, SecurityVisual } from "@/components/landing/visuals";
@@ -11,6 +12,7 @@ export default function LandingPage() {
     <div className="flex flex-col">
       <LandingNavbar />
       <Hero />
+      <StatStrip />
       <CinematicSequence />
 
       <FeatureSection
