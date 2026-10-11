@@ -3,7 +3,7 @@ import { and, eq, isNull, desc } from "drizzle-orm";
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import ExcelJS from "exceljs";
 import { db } from "@/db";
-import { cashbooks, collaborators, transactions, users } from "@/db/schema";
+import { cashbooks, collaborators, invitations, transactions, users } from "@/db/schema";
 import { computeBalance, type BalanceSummary } from "@/server/balance";
 import { formatMoney, fromMinorUnits } from "@/lib/money";
 import { NotFoundError } from "@/server/permissions";
@@ -14,6 +14,7 @@ export interface CashbookExportData {
   cashbook: { id: string; name: string; description: string | null; currency: string };
   owner: { name: string; email: string | null };
   collaborators: { name: string; email: string | null; permission: string }[];
+  pendingInviteEmails: string[];
   balance: BalanceSummary;
   transactions: Array<{
     id: string;
@@ -52,6 +53,13 @@ export async function getCashbookExportData(cashbookId: string): Promise<Cashboo
     .where(and(eq(transactions.cashbookId, cashbookId), isNull(transactions.deletedAt)))
     .orderBy(desc(transactions.occurredAt));
 
+  // Nominees get update emails from the moment they're invited, not just
+  // after they accept — a pending invitation still counts as "shared with".
+  const pendingInviteRows = await db
+    .select({ email: invitations.email })
+    .from(invitations)
+    .where(and(eq(invitations.cashbookId, cashbookId), eq(invitations.status, "PENDING")));
+
   const balance = await computeBalance(cashbookId, cashbook.initialBalanceMinor);
 
   return {
@@ -67,6 +75,7 @@ export async function getCashbookExportData(cashbookId: string): Promise<Cashboo
       email: row.user.email,
       permission: row.collaborator.permission,
     })),
+    pendingInviteEmails: pendingInviteRows.map((row) => row.email).filter((email): email is string => Boolean(email)),
     balance,
     transactions: txRows.map((row) => ({
       id: row.transaction.id,
@@ -83,12 +92,20 @@ export async function getCashbookExportData(cashbookId: string): Promise<Cashboo
   };
 }
 
-/** Owner + every collaborator's email, deduped — the "share with everyone" list. */
+/**
+ * Owner + every collaborator + every pending invitee's email, deduped — the
+ * "share with everyone" list. Pending invitees are included deliberately:
+ * a nominee should start receiving updates as soon as they're invited, not
+ * only after they accept.
+ */
 export function getCashbookRecipientEmails(data: CashbookExportData): string[] {
   const emails = new Set<string>();
   if (data.owner.email) emails.add(data.owner.email);
   for (const c of data.collaborators) {
     if (c.email) emails.add(c.email);
+  }
+  for (const email of data.pendingInviteEmails) {
+    emails.add(email);
   }
   return Array.from(emails);
 }
