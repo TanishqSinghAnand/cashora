@@ -8,7 +8,7 @@ import { computeBalance } from "@/server/balance";
 import { createCashbookSchema } from "@/validations/cashbook";
 import { toMinorUnits } from "@/lib/money";
 import { recordAudit } from "@/server/audit";
-import { syncCashbookRow, syncCollaboratorRow } from "@/services/sheets";
+import { syncCashbookRow, syncCollaboratorRow } from "@/services/mongo";
 import { sendInviteEmail } from "@/server/mailer";
 import { env, isSmtpConfigured } from "@/lib/env";
 import { handleApiError } from "@/server/api-utils";

@@ -7,7 +7,7 @@ import { requireUser } from "@/server/auth";
 import { getAuthorizedCashbook, assertOwner } from "@/server/permissions";
 import { createInvitationSchema } from "@/validations/invitation";
 import { recordAudit } from "@/server/audit";
-import { syncCollaboratorRow } from "@/services/sheets";
+import { syncCollaboratorRow } from "@/services/mongo";
 import { sendInviteEmail } from "@/server/mailer";
 import { env, isSmtpConfigured } from "@/lib/env";
 import { handleApiError } from "@/server/api-utils";

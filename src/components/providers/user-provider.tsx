@@ -7,13 +7,13 @@ import type { SessionUser } from "@/types";
 
 interface MeResponse {
   user: SessionUser | null;
-  features?: { googleSheets: boolean };
+  features?: { mongo: boolean };
 }
 
 interface UserContextValue {
   user: SessionUser | null;
   isLoading: boolean;
-  features?: { googleSheets: boolean };
+  features?: { mongo: boolean };
   refresh: () => void;
 }
 

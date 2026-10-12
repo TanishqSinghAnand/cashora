@@ -8,7 +8,7 @@ import { getOrCreateUserByEmail, createSession } from "@/server/auth";
 import { checkRateLimit } from "@/server/rate-limit";
 import { getClientIp } from "@/server/request";
 import { recordAudit } from "@/server/audit";
-import { syncUserRow } from "@/services/sheets";
+import { syncUserRow } from "@/services/mongo";
 import { handleApiError, jsonError } from "@/server/api-utils";
 
 const REASON_MESSAGES: Record<string, string> = {

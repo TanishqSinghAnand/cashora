@@ -5,7 +5,7 @@ import { invitations, collaborators, cashbooks, users } from "@/db/schema";
 import { requireUser } from "@/server/auth";
 import { NotFoundError, ForbiddenError } from "@/server/permissions";
 import { recordAudit } from "@/server/audit";
-import { syncCollaboratorRow } from "@/services/sheets";
+import { syncCollaboratorRow } from "@/services/mongo";
 import { handleApiError } from "@/server/api-utils";
 
 type Params = { params: Promise<{ token: string }> };

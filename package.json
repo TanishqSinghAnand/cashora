@@ -12,7 +12,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "sheets:init": "node --conditions=react-server --import tsx scripts/init-sheets.ts"
+    "mongo:init": "node --conditions=react-server --import tsx scripts/init-mongo.ts",
+    "migrate:sheets-to-mongo": "tsx scripts/migrate-sheets-to-mongo.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -23,10 +24,10 @@
     "drizzle-orm": "^0.45.2",
     "exceljs": "^4.4.0",
     "framer-motion": "^13.2.0",
-    "googleapis": "^178.0.0",
     "gsap": "^3.15.0",
     "jose": "^6.2.12",
     "lucide-react": "^1.42.0",
+    "mongodb": "^6.21.0",
     "nanoid": "^6.0.1",
     "next": "16.3.4",
     "nodemailer": "^10.0.15",
@@ -52,6 +53,7 @@
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
+    "googleapis": "^178.0.0",
     "eslint-config-next": "16.3.4",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4",

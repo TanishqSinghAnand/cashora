@@ -25,11 +25,11 @@ export const metadata: Metadata = {
     template: "%s · Cashora",
   },
   description:
-    "Cashora is a collaborative digital cashbook. Track cash in and out, share books with partners, and keep records synchronized with Google Sheets.",
+    "Cashora is a collaborative digital cashbook. Track cash in and out, share books with partners, and keep records mirrored to MongoDB.",
   openGraph: {
     title: "Cashora — Track. Share. Stay in sync.",
     description:
-      "A beautiful collaborative cashbook where you can track cash flow, share books with partners, and stay in sync with Google Sheets.",
+      "A beautiful collaborative cashbook where you can track cash flow, share books with partners, and stay in sync with MongoDB.",
     type: "website",
     url: appUrl,
     siteName: "Cashora",

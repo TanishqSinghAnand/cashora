@@ -7,7 +7,7 @@ import { getAuthorizedCashbook, assertCanEdit } from "@/server/permissions";
 import { createTransactionSchema } from "@/validations/transaction";
 import { toMinorUnits } from "@/lib/money";
 import { recordAudit } from "@/server/audit";
-import { syncTransactionRow } from "@/services/sheets";
+import { syncTransactionRow } from "@/services/mongo";
 import { notifyCashbookUpdate } from "@/server/export";
 import { formatMoney } from "@/lib/money";
 import { handleApiError } from "@/server/api-utils";

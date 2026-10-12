@@ -18,7 +18,7 @@ const FRAMES = [
   { icon: Wallet, title: "Balance updates instantly", detail: "No manual math — the ledger is the source of truth." },
   { icon: Users, title: "A partner joins", detail: "Invite Rahul — he accepts in one tap." },
   { icon: RefreshCw, title: "Both stay in sync", detail: "Every change appears on both screens automatically." },
-  { icon: SheetIcon, title: "Google Sheets updates", detail: "Every transaction lands in your spreadsheet too." },
+  { icon: SheetIcon, title: "MongoDB updates", detail: "Every transaction lands in the Mongo mirror too." },
 ] as const;
 
 export function CinematicSequence() {

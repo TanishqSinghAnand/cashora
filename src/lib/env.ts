@@ -54,13 +54,10 @@ export const env = {
     smtpHost && smtpPort && smtpUser && smtpPassword && smtpFrom
       ? { host: smtpHost, port: Number(smtpPort), user: smtpUser, password: smtpPassword, from: buildFromHeader(smtpUser, smtpFrom) }
       : null,
-  googleSheetsId: optional("GOOGLE_SHEETS_ID"),
-  googleServiceAccountEmail: optional("GOOGLE_SERVICE_ACCOUNT_EMAIL"),
-  googlePrivateKey: optional("GOOGLE_PRIVATE_KEY")?.replace(/\\n/g, "\n"),
+  mongodbUri: optional("MONGODB_URI"),
+  mongodbDbName: optional("MONGODB_DB_NAME") ?? "cashora",
 };
 
 export const isSmtpConfigured = Boolean(env.smtp);
-export const isGoogleSheetsConfigured = Boolean(
-  env.googleSheetsId && env.googleServiceAccountEmail && env.googlePrivateKey
-);
+export const isMongoConfigured = Boolean(env.mongodbUri);
 export const isDatabaseConfigured = Boolean(env.databaseUrl);

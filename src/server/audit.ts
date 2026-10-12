@@ -2,7 +2,7 @@ import "server-only";
 import { after } from "next/server";
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
-import { syncAuditLog } from "@/services/sheets";
+import { syncAuditLog } from "@/services/mongo";
 
 export type AuditAction =
   | "LOGIN"
@@ -36,10 +36,10 @@ export async function recordAudit(entry: {
     metadata: entry.cashbookId ? { ...entry.metadata, cashbookId: entry.cashbookId } : entry.metadata,
   });
 
-  // Google Sheets sync is best-effort (never let a spreadsheet outage break
-  // the app) but still needs after() — on Vercel's serverless runtime an
-  // un-awaited promise can be frozen mid-flight the instant the response is
-  // sent, so a bare `void promise` here would silently never complete.
+  // MongoDB sync is best-effort (never let a Mongo outage break the app)
+  // but still needs after() — on Vercel's serverless runtime an un-awaited
+  // promise can be frozen mid-flight the instant the response is sent, so a
+  // bare `void promise` here would silently never complete.
   after(
     syncAuditLog({
       timestamp: new Date().toISOString(),
@@ -49,7 +49,7 @@ export async function recordAudit(entry: {
       entityId: entry.entityId ?? "",
       description: entry.description,
     }).catch((err) => {
-      console.error("[audit] Google Sheets sync failed", err);
+      console.error("[audit] MongoDB sync failed", err);
     })
   );
 }

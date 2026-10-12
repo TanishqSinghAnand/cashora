@@ -4,7 +4,7 @@ import { Hero } from "@/components/landing/hero";
 import { StatStrip } from "@/components/landing/stat-strip";
 import { CinematicSequence } from "@/components/landing/cinematic-sequence";
 import { FeatureSection } from "@/components/landing/feature-section";
-import { TrackCashVisual, CollaborateVisual, SheetsVisual, SecurityVisual } from "@/components/landing/visuals";
+import { TrackCashVisual, CollaborateVisual, MongoVisual, SecurityVisual } from "@/components/landing/visuals";
 import { CtaSection, LandingFooter } from "@/components/landing/cta";
 
 export default function LandingPage() {
@@ -45,14 +45,14 @@ export default function LandingPage() {
       />
 
       <FeatureSection
-        eyebrow="Google Sheets"
-        id="sheets"
-        title="A spreadsheet that keeps itself updated"
-        description="Every cashbook, transaction, and collaborator syncs to a central Google Sheet automatically — for reporting, backups, or peace of mind."
+        eyebrow="MongoDB"
+        id="mongo"
+        title="A live mirror that keeps itself updated"
+        description="Every cashbook, transaction, and collaborator syncs to MongoDB automatically — for reporting, backups, or peace of mind."
         icon={<SheetIcon size={20} />}
-        points={["Users, Cashbooks, Transactions, Collaborators & Audit Log tabs", "Credentials stay server-side, never exposed to the browser", "The app keeps working even if Sheets is temporarily down"]}
+        points={["Users, Cashbooks, Transactions, Collaborators & Audit Log collections", "The connection string stays server-side, never exposed to the browser", "The app keeps working even if Mongo is temporarily down"]}
         reverse
-        visual={<SheetsVisual />}
+        visual={<MongoVisual />}
       />
 
       <FeatureSection

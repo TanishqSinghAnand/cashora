@@ -55,8 +55,8 @@ export function LandingNavbar() {
           <a href="#how-it-works" className="hover:text-foreground transition-colors">
             How it works
           </a>
-          <a href="#sheets" className="hover:text-foreground transition-colors">
-            Google Sheets
+          <a href="#mongo" className="hover:text-foreground transition-colors">
+            MongoDB
           </a>
           <a href="#security" className="hover:text-foreground transition-colors">
             Security

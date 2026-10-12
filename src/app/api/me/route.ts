@@ -3,15 +3,15 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getCurrentUser, requireUser } from "@/server/auth";
-import { isGoogleSheetsConfigured } from "@/lib/env";
+import { isMongoConfigured } from "@/lib/env";
 import { updateProfileSchema } from "@/validations/profile";
-import { syncUserRow } from "@/services/sheets";
+import { syncUserRow } from "@/services/mongo";
 import { handleApiError } from "@/server/api-utils";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ user: null });
-  return NextResponse.json({ user, features: { googleSheets: isGoogleSheetsConfigured } });
+  return NextResponse.json({ user, features: { mongo: isMongoConfigured } });
 }
 
 export async function PATCH(req: NextRequest) {

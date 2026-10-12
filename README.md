@@ -3,9 +3,9 @@
 **Track. Share. Stay in sync.**
 
 Cashora is a collaborative digital cashbook. Track cash in and cash out, share
-a cashbook with a partner, and keep records synchronized to a Google
-Spreadsheet — sign in with a one-time code emailed to you instead of a
-password, no third-party login provider involved.
+a cashbook with a partner, and keep records mirrored to MongoDB — sign in with
+a one-time code emailed to you instead of a password, no third-party login
+provider involved.
 
 ## Features
 
@@ -22,9 +22,10 @@ password, no third-party login provider involved.
 - **Collaboration** — invite a partner by email via a shareable link; owners
   can grant view-only or edit access; every access check happens server-side
   (an unrelated user gets a 403 even if they guess a cashbook ID).
-- **Google Sheets sync** — Users, Cashbooks, Transactions, Collaborators, and
-  Audit Log tabs kept in sync automatically. Credentials stay server-side;
-  the app keeps working if Sheets is temporarily unreachable.
+- **MongoDB sync** — Users, Cashbooks, Transactions, Collaborators, and Audit
+  Log collections kept in sync automatically alongside the Postgres system of
+  record. The connection string stays server-side; the app keeps working if
+  Mongo is temporarily unreachable.
 - **Audit log** — every significant action (login, create/edit/delete
   cashbook or transaction, invite/accept/decline/remove collaborator) is
   recorded.
@@ -36,7 +37,8 @@ password, no third-party login provider involved.
 - **Framework:** Next.js 16 (App Router, Turbopack), React 19, TypeScript
 - **Auth:** self-hosted email OTP (nodemailer/SMTP + signed session JWTs)
 - **Styling:** Tailwind CSS v4
-- **Database:** Postgres (Neon serverless driver) via Drizzle ORM
+- **Database:** Postgres (Neon serverless driver) via Drizzle ORM — system of
+  record. MongoDB mirrors writes for the audit/export side.
 - **Validation:** Zod
 - **Forms:** react-hook-form + @hookform/resolvers
 - **Animation:** Framer Motion, GSAP/ScrollTrigger
@@ -53,12 +55,12 @@ src/
   db/             # Drizzle schema + client
   hooks/          # Client-side SWR hooks
   lib/            # Framework-agnostic helpers (money, env, utils)
-  server/         # Server-only logic: auth, otp, mailer, permissions, balance, audit
-  services/       # External integrations (Google Sheets)
+  server/         # Server-only logic: auth, otp, mailer, permissions, balance, audit, mongo client
+  services/       # External integrations (MongoDB sync)
   types/          # Shared TypeScript types
   validations/    # Zod schemas
 tests/            # Vitest unit + integration tests
-scripts/          # One-off scripts (migrate, seed, Sheets init)
+scripts/          # One-off scripts (migrate, seed, Mongo init, Sheets->Mongo migration)
 drizzle/          # Generated SQL migrations
 ```
 
@@ -163,25 +165,37 @@ best-effort convenience; don't depend on it alone when testing or
 demoing — check the dashboard, or share the invite link directly (the invite
 drawer always shows it).
 
-## Google Sheets setup
+## MongoDB setup
 
-1. Create a project in [Google Cloud Console](https://console.cloud.google.com/).
-2. Enable the **Google Sheets API** for that project.
-3. Create a **Service Account** (IAM & Admin → Service Accounts), then create
-   a JSON key for it.
-4. From the JSON key: put `client_email` in `GOOGLE_SERVICE_ACCOUNT_EMAIL`
-   and `private_key` in `GOOGLE_PRIVATE_KEY` (keep the `\n` escapes literal —
-   the app converts them to real newlines at runtime).
-5. Create a new Google Sheet, share it with the service account's email
-   (Editor access), and put its ID (the long string in the sheet's URL)
-   in `GOOGLE_SHEETS_ID`.
-6. Run `npm run sheets:init` — this creates the Users / Cashbooks /
-   Transactions / Collaborators / Audit Log tabs with headers, and writes a
-   test row to Audit Log to confirm the connection works.
+1. Create a free cluster at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   (or point at any MongoDB instance — self-hosted works too).
+2. Create a database user and grab its connection string (Atlas: **Connect**
+   → **Drivers**); put it in `MONGODB_URI`.
+3. Set `MONGODB_DB_NAME` (defaults to `cashora` if omitted).
+4. Run `npm run mongo:init` — this ensures the indexes used by the
+   `collaborators`, `transactions`, and `audit_log` collections exist, and
+   writes a test document to `audit_log` to confirm the connection works.
 
 Sync is best-effort: every write path calls the relevant `sync*` function in
-`src/services/sheets.ts` fire-and-forget, wrapped so a Sheets outage never
-breaks the request that triggered it.
+`src/services/mongo.ts` fire-and-forget, wrapped so a Mongo outage never
+breaks the request that triggered it. Postgres remains the system of record;
+Mongo is a mirror, not a dependency the app reads from.
+
+### Migrating from the old Google Sheets mirror
+
+Cashora previously mirrored writes to a Google Sheet instead of MongoDB. If
+you have an existing sheet with data worth keeping, copy it into Mongo once:
+
+1. Set `GOOGLE_SHEETS_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, and
+   `GOOGLE_PRIVATE_KEY` in `.env.local` (same values the old Sheets
+   integration used) alongside `MONGODB_URI`.
+2. Run `npm run migrate:sheets-to-mongo`. It reads every row out of the
+   Users / Cashbooks / Transactions / Collaborators / Audit Log tabs and
+   upserts them into the matching Mongo collections. Safe to re-run — rows
+   are keyed deterministically, so repeat runs overwrite instead of
+   duplicating.
+3. Once confirmed, the `GOOGLE_*` variables can be removed — nothing else
+   reads them.
 
 ## Testing
 

@@ -12,7 +12,7 @@ if (typeof window !== "undefined") {
 const STATS = [
   { icon: ShieldCheck, value: 100, suffix: "%", label: "Requests server-verified" },
   { icon: Clock, value: 10, suffix: " min", label: "OTP code expiry window" },
-  { icon: Table, value: 5, suffix: "", label: "Sheets tabs auto-synced" },
+  { icon: Table, value: 5, suffix: "", label: "Mongo collections auto-synced" },
   { icon: KeyRound, value: 0, suffix: "", label: "Passwords ever stored" },
 ] as const;
 
